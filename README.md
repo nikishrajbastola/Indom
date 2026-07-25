@@ -158,7 +158,7 @@ Students and organizations access the application through a unified Next.js fron
 ### Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/taskforge.git
+git clone https://github.com/nikishrajbastola/taskforge.git
 cd taskforge
 ```
 
