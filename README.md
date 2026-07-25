@@ -59,17 +59,18 @@ This project demonstrates full-stack development, authentication, database manag
 
 ## Project Structure
 
-
+```text
 taskforge/
 ├── app/                 # Application pages, layouts, and routing
 ├── components/          # Reusable UI components
 ├── docs/                # Business analysis and project documentation
 ├── lib/                 # Supabase configuration and shared utilities
-├── public/              # Static assets (images, icons, etc.)
-├── Dockerfile           # Docker container configuration
-├── package.json         # Project dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-└── README.md            # Project documentation
+├── public/              # Static assets
+├── Dockerfile
+├── package.json
+├── tsconfig.json
+└── README.md
+```
 
 ## Documentation
 
@@ -85,27 +86,37 @@ The `docs/` folder contains project planning and business analysis artifacts, in
 
 ## System Architecture
 
-TaskForge uses a full-stack architecture built with Next.js and Supabase.
+TaskForge follows a modern full-stack architecture using **Next.js**, **Supabase Auth**, and **PostgreSQL**. The frontend provides separate experiences for students and organizations, while Supabase manages authentication and database operations.
 
+```text
+                      Students                    Organizations
+                           │                             │
+                           └─────────────┬───────────────┘
+                                         │
+                                         ▼
+                           Next.js Web Application
+                                         │
+          ┌──────────────────────────────┼──────────────────────────────┐
+          │                              │                              │
+          ▼                              ▼                              ▼
+ Authentication                 Project Management            Analytics Dashboard
+          │                              │                              │
+          └──────────────────────────────┼──────────────────────────────┘
+                                         │
+                                         ▼
+                               Supabase Backend
+                                         │
+                   ┌─────────────────────┴─────────────────────┐
+                   │                                           │
+                   ▼                                           ▼
+            Supabase Auth                           PostgreSQL Database
+                                                           │
+                                ┌──────────────────────────┼──────────────────────────┐
+                                ▼                          ▼                          ▼
+                            User Profiles              Projects                  Applications
+                                        │
+                                         ▼
+                               Deployed on Vercel
+```
 
-Students / Organizations
-          │
-          ▼
-   Next.js Web Application
-          │
-          ├── Authentication
-          ├── Project Management
-          ├── Application Management
-          └── Analytics Dashboard
-          │
-          ▼
-      Supabase Backend
-          │
-          ├── Supabase Auth
-          └── PostgreSQL Database
-          │
-          ▼
-      Deployed on Vercel
-
-
-Students and organizations interact with the Next.js frontend. Supabase Auth manages account registration and login, while the PostgreSQL database stores user profiles, projects, applications, and application statuses. The application is deployed through Vercel.
+Students and organizations access the application through a unified Next.js frontend. Authentication is handled by **Supabase Auth**, while **PostgreSQL** stores user profiles, projects, and applications. Business logic coordinates project management and application workflows, and the application is deployed on **Vercel** for hosting.
