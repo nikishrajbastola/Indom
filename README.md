@@ -120,3 +120,71 @@ TaskForge follows a modern full-stack architecture using **Next.js**, **Supabase
 ```
 
 Students and organizations access the application through a unified Next.js frontend. Authentication is handled by **Supabase Auth**, while **PostgreSQL** stores user profiles, projects, and applications. Business logic coordinates project management and application workflows, and the application is deployed on **Vercel** for hosting.
+
+## Application Screenshots
+
+### Landing Page
+
+![Landing Page](assets/landing-page.png)
+
+---
+
+### Student Dashboard
+
+![Student Dashboard](assets/student-dashboard.png)
+
+---
+
+### Organization Dashboard
+
+![Organization Dashboard](assets/organization-dashboard.png)
+
+---
+
+### Analytics Dashboard
+
+![Analytics Dashboard](assets/analytics-dashboard.png)
+
+
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+- Supabase account
+
+### Clone the repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/taskforge.git
+cd taskforge
+```
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Configure environment variables
+
+Create a `.env.local` file.
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### Start the development server
+
+```bash
+npm run dev
+```
+
+Visit:
+
+```
+http://localhost:3000
+```
