@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { calculateMatch } from "@/lib/matching/calculateMatch";
 
 type Task = {
   id: string;
@@ -15,6 +16,9 @@ type Task = {
     | { full_name: string | null }
     | { full_name: string | null }[]
     | null;
+  matchPercentage: number;
+  matchedSkills: string[];
+  missingSkills: string[];
 };
 
 export default function StudentProjectsPage() {
@@ -29,6 +33,31 @@ export default function StudentProjectsPage() {
 
   const fetchTasks = async () => {
     setLoading(true);
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      alert(userError?.message || "You must be logged in.");
+      setLoading(false);
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("skills")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError) {
+      alert(profileError.message);
+      setLoading(false);
+      return;
+    }
+
+    const studentSkills = profile?.skills || "";
 
     const { data, error } = await supabase
       .from("tasks")
@@ -51,7 +80,20 @@ export default function StudentProjectsPage() {
       return;
     }
 
-    setTasks(data || []);
+    const rankedTasks: Task[] = (data || [])
+      .map((task) => {
+        const match = calculateMatch(studentSkills, task.skills);
+
+        return {
+          ...task,
+          matchPercentage: match.percentage,
+          matchedSkills: match.matchedSkills,
+          missingSkills: match.missingSkills,
+        };
+      })
+      .sort((a, b) => b.matchPercentage - a.matchPercentage);
+
+    setTasks(rankedTasks);
     setLoading(false);
   };
 
@@ -72,7 +114,9 @@ export default function StudentProjectsPage() {
       return;
     }
 
-    setAppliedTaskIds(data.map((application) => application.task_id));
+    setAppliedTaskIds(
+      (data || []).map((application) => application.task_id)
+    );
   };
 
   const handleApply = async (taskId: string) => {
@@ -120,19 +164,32 @@ export default function StudentProjectsPage() {
       return;
     }
 
-    setAppliedTaskIds([...appliedTaskIds, taskId]);
+    setAppliedTaskIds((currentIds) => [...currentIds, taskId]);
   };
 
   return (
     <main style={page}>
       <aside style={sidebar}>
-        <Link href="/" style={brand}>TaskForge</Link>
+        <Link href="/" style={brand}>
+          TaskForge
+        </Link>
 
         <nav style={nav}>
-          <Link href="/student" style={navItem}>Overview</Link>
-          <Link href="/student/projects" style={activeNav}>Browse Projects</Link>
-          <Link href="/student/applications" style={navItem}>My Applications</Link>
-          <Link href="/student/profile" style={navItem}>Profile</Link>
+          <Link href="/student" style={navItem}>
+            Overview
+          </Link>
+
+          <Link href="/student/projects" style={activeNav}>
+            Browse Projects
+          </Link>
+
+          <Link href="/student/applications" style={navItem}>
+            My Applications
+          </Link>
+
+          <Link href="/student/profile" style={navItem}>
+            Profile
+          </Link>
         </nav>
       </aside>
 
@@ -140,8 +197,10 @@ export default function StudentProjectsPage() {
         <header style={header}>
           <div>
             <p style={eyebrow}>PROJECT MARKETPLACE</p>
-            <h1 style={title}>Browse Projects</h1>
-            <p style={subtitle}>Discover real-world projects and gain experience.</p>
+            <h1 style={title}>Recommended Projects</h1>
+            <p style={subtitle}>
+              Projects ranked based on your profile skills.
+            </p>
           </div>
 
           <div style={countPill}>{tasks.length} projects</div>
@@ -155,6 +214,7 @@ export default function StudentProjectsPage() {
           <section style={grid}>
             {tasks.map((task) => {
               const hasApplied = appliedTaskIds.includes(task.id);
+
               const organization = Array.isArray(task.profiles)
                 ? task.profiles[0]
                 : task.profiles;
@@ -162,18 +222,68 @@ export default function StudentProjectsPage() {
               return (
                 <div key={task.id} style={card}>
                   <div>
-                    <Link href={`/organization/${task.organization_id}`} style={orgLink}>
-                      Posted by {organization?.full_name || "Unknown organization"}
-                    </Link>
+                    <div style={cardTopRow}>
+                      <Link
+                        href={`/organization/${task.organization_id}`}
+                        style={orgLink}
+                      >
+                        Posted by{" "}
+                        {organization?.full_name || "Unknown organization"}
+                      </Link>
+
+                      <span style={matchBadge}>
+                        {task.matchPercentage}% Match
+                      </span>
+                    </div>
 
                     <h2 style={cardTitle}>{task.title}</h2>
+
                     <p style={description}>{task.description}</p>
+
+                    {task.matchedSkills.length > 0 && (
+                      <div style={skillSection}>
+                        <p style={skillLabel}>Matched skills</p>
+
+                        <div style={meta}>
+                          {task.matchedSkills.map((skill) => (
+                            <span
+                              key={`${task.id}-matched-${skill}`}
+                              style={matchedChip}
+                            >
+                              ✓ {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {task.missingSkills.length > 0 && (
+                      <div style={skillSection}>
+                        <p style={skillLabel}>Skills to develop</p>
+
+                        <div style={meta}>
+                          {task.missingSkills.map((skill) => (
+                            <span
+                              key={`${task.id}-missing-${skill}`}
+                              style={missingChip}
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div style={footer}>
                     <div style={meta}>
-                      <span style={chip}>{task.skills || "No skills"}</span>
-                      <span style={chip}>{task.duration || "Flexible"}</span>
+                      <span style={chip}>
+                        {task.skills || "No skills listed"}
+                      </span>
+
+                      <span style={chip}>
+                        {task.duration || "Flexible"}
+                      </span>
                     </div>
 
                     <button
@@ -218,7 +328,10 @@ const brand = {
   display: "block",
 };
 
-const nav = { display: "grid", gap: "10px" };
+const nav = {
+  display: "grid",
+  gap: "10px",
+};
 
 const navItem = {
   color: "#8f8f8f",
@@ -235,7 +348,10 @@ const activeNav = {
   background: "rgba(255,255,255,0.08)",
 };
 
-const content = { padding: "48px", maxWidth: "1200px" };
+const content = {
+  padding: "48px",
+  maxWidth: "1200px",
+};
 
 const header = {
   display: "flex",
@@ -257,7 +373,10 @@ const title = {
   letterSpacing: "-0.04em",
 };
 
-const subtitle = { color: "#8f8f8f", fontSize: "16px" };
+const subtitle = {
+  color: "#8f8f8f",
+  fontSize: "16px",
+};
 
 const countPill = {
   padding: "8px 12px",
@@ -279,11 +398,19 @@ const card = {
   display: "flex",
   flexDirection: "column" as const,
   justifyContent: "space-between",
-  minHeight: "240px",
+  minHeight: "300px",
   padding: "22px",
   borderRadius: "18px",
   background: "#0d0d0d",
   border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const cardTopRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  marginBottom: "10px",
 };
 
 const orgLink = {
@@ -291,11 +418,24 @@ const orgLink = {
   color: "#a1a1aa",
   fontSize: "13px",
   fontWeight: 700,
-  marginBottom: "10px",
   textDecoration: "none",
 };
 
-const cardTitle = { fontSize: "20px", marginBottom: "10px" };
+const matchBadge = {
+  padding: "6px 10px",
+  borderRadius: "999px",
+  background: "rgba(34,197,94,0.12)",
+  border: "1px solid rgba(34,197,94,0.25)",
+  color: "#4ade80",
+  fontSize: "12px",
+  fontWeight: 800,
+  whiteSpace: "nowrap" as const,
+};
+
+const cardTitle = {
+  fontSize: "20px",
+  marginBottom: "10px",
+};
 
 const description = {
   color: "#9ca3af",
@@ -303,7 +443,22 @@ const description = {
   fontSize: "14px",
 };
 
-const footer = { marginTop: "22px" };
+const skillSection = {
+  marginTop: "18px",
+};
+
+const skillLabel = {
+  color: "#71717a",
+  fontSize: "11px",
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase" as const,
+  marginBottom: "8px",
+};
+
+const footer = {
+  marginTop: "22px",
+};
 
 const meta = {
   display: "flex",
@@ -320,6 +475,20 @@ const chip = {
   color: "#a1a1aa",
   fontSize: "12px",
   fontWeight: 600,
+};
+
+const matchedChip = {
+  ...chip,
+  background: "rgba(34,197,94,0.1)",
+  border: "1px solid rgba(34,197,94,0.2)",
+  color: "#4ade80",
+};
+
+const missingChip = {
+  ...chip,
+  background: "rgba(245,158,11,0.08)",
+  border: "1px solid rgba(245,158,11,0.18)",
+  color: "#fbbf24",
 };
 
 const button = {
