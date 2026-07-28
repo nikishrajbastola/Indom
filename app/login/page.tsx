@@ -10,44 +10,72 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
 
   const handleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      alert(error.message);
+    if (!email.trim() || !password.trim()) {
+      alert("Please enter your email and password.");
       return;
     }
 
-    const user = data.user;
+    setLoggingIn(true);
 
-    if (!user) {
-      alert("Login failed. Please try again.");
-      return;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      const user = data.user;
+
+      if (!user) {
+        alert("Login failed. Please try again.");
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        alert(profileError.message);
+        return;
+      }
+
+      if (!profile) {
+        alert("No profile was found for this account.");
+        return;
+      }
+
+      if (profile.role === "admin") {
+        router.replace("/admin/organizations");
+      } else if (profile.role === "organization") {
+        router.replace("/organization");
+      } else if (profile.role === "student") {
+        router.replace("/student");
+      } else {
+        alert("This account does not have a valid role.");
+        router.replace("/");
+      }
+    } catch {
+      alert("Something went wrong while logging in.");
+    } finally {
+      setLoggingIn(false);
     }
+  };
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      alert(profileError.message);
-      return;
-    }
-
-    if (profile.role === "student") {
-      router.push("/student");
-    } else if (profile.role === "organization") {
-      router.push("/organization");
-    } else if (profile.role === "admin") {
-      router.push("/admin");
-    } else {
-      router.push("/");
+  const handleKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (event.key === "Enter") {
+      handleLogin();
     }
   };
 
@@ -68,7 +96,9 @@ export default function LoginPage() {
             placeholder="Email address"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
+            onKeyDown={handleKeyDown}
+            autoComplete="email"
           />
 
           <input
@@ -76,11 +106,21 @@ export default function LoginPage() {
             placeholder="Password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(event) => setPassword(event.target.value)}
+            onKeyDown={handleKeyDown}
+            autoComplete="current-password"
           />
 
-          <button style={button} onClick={handleLogin}>
-            Log in
+          <button
+            type="button"
+            style={{
+              ...button,
+              ...(loggingIn ? disabledButton : {}),
+            }}
+            onClick={handleLogin}
+            disabled={loggingIn}
+          >
+            {loggingIn ? "Logging in..." : "Log in"}
           </button>
         </div>
 
@@ -103,6 +143,9 @@ const page = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  padding: "24px",
+  fontFamily:
+    "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 };
 
 const card = {
@@ -111,6 +154,7 @@ const card = {
   padding: "42px",
   borderRadius: "32px",
   background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.09)",
 };
 
 const brand = {
@@ -122,12 +166,13 @@ const brand = {
 
 const title = {
   fontSize: "44px",
-  margin: "20px 0",
+  margin: "20px 0 10px",
+  letterSpacing: "-0.04em",
 };
 
 const subtitle = {
   color: "#aaa",
-  marginBottom: "20px",
+  marginBottom: "24px",
 };
 
 const form = {
@@ -136,11 +181,15 @@ const form = {
 };
 
 const input = {
+  width: "100%",
+  boxSizing: "border-box" as const,
   padding: "16px",
   borderRadius: "16px",
-  border: "none",
+  border: "1px solid rgba(255,255,255,0.08)",
   background: "#1a1a1a",
   color: "white",
+  fontSize: "16px",
+  outline: "none",
 };
 
 const button = {
@@ -150,11 +199,18 @@ const button = {
   background: "white",
   color: "black",
   fontWeight: 700,
+  fontSize: "16px",
   cursor: "pointer",
+};
+
+const disabledButton = {
+  opacity: 0.6,
+  cursor: "not-allowed",
 };
 
 const bottomText = {
   marginTop: "20px",
+  color: "#aaa",
 };
 
 const link = {
