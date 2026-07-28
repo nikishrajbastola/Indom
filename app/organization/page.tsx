@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 
 export default function OrganizationOverviewPage() {
   return (
@@ -33,6 +34,16 @@ export default function OrganizationOverviewPage() {
             Profile
           </Link>
         </nav>
+
+        <div
+          style={{
+            marginTop: "auto",
+            paddingTop: "30px",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <LogoutButton />
+        </div>
       </aside>
 
       <section style={content}>
@@ -104,9 +115,13 @@ const page = {
 };
 
 const sidebar = {
+  minHeight: "100vh",
   borderRight: "1px solid rgba(255,255,255,0.08)",
   padding: "28px",
   background: "#080808",
+
+  display: "flex",
+  flexDirection: "column" as const,
 };
 
 const brand = {

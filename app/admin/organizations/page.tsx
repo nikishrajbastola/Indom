@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import LogoutButton from "@/components/LogoutButton";
 
 type VerificationStatus = "pending" | "approved" | "rejected" | null;
 
@@ -136,8 +137,7 @@ export default function AdminOrganizationsPage() {
     const action = newStatus === "approved" ? "approve" : "reject";
 
     const confirmed = window.confirm(
-      `Are you sure you want to ${action} ${
-        organization.full_name || "this organization"
+      `Are you sure you want to ${action} ${organization.full_name || "this organization"
       }?`
     );
 
@@ -205,8 +205,7 @@ export default function AdminOrganizationsPage() {
       }
 
       setMessage(
-        `${
-          updatedProfile.full_name || "Organization"
+        `${updatedProfile.full_name || "Organization"
         } was ${newStatus} successfully.`
       );
 
@@ -280,6 +279,16 @@ export default function AdminOrganizationsPage() {
             Organization Reviews
           </Link>
         </nav>
+
+        <div
+          style={{
+            marginTop: "auto",
+            paddingTop: "30px",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <LogoutButton />
+        </div>
       </aside>
 
       <section style={content}>
@@ -443,10 +452,10 @@ export default function AdminOrganizationsPage() {
                     style={{
                       ...statusBadge,
                       ...(selectedOrganization.verification_status ===
-                      "approved"
+                        "approved"
                         ? approvedBadge
                         : selectedOrganization.verification_status ===
-                            "rejected"
+                          "rejected"
                           ? rejectedBadge
                           : pendingBadge),
                     }}
@@ -608,6 +617,9 @@ const sidebar = {
   padding: "28px",
   background: "#080808",
   borderRight: "1px solid rgba(255,255,255,0.08)",
+
+  display: "flex",
+  flexDirection: "column" as const,
 };
 
 const brand = {
