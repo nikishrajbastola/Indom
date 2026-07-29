@@ -2,7 +2,7 @@
 
 ## Project
 
-**TaskForge – Student Project Marketplace Platform**
+**Indom – Student Project Marketplace Platform**
 
 ## Version
 
@@ -16,7 +16,7 @@
 
 # Overview
 
-This document captures the Agile user stories for TaskForge. The stories represent the business requirements from the perspective of the platform's primary stakeholders. These user stories serve as the foundation for sprint planning, backlog prioritization, feature development, and user acceptance testing.
+This document captures the Agile user stories for Indom. The stories represent the business requirements from the perspective of the platform's primary stakeholders. These user stories serve as the foundation for sprint planning, backlog prioritization, feature development, and user acceptance testing.
 
 ---
 
@@ -344,7 +344,7 @@ Protects sensitive information while enforcing role-based permissions.
 
 # Product Success Metrics
 
-The following business metrics will be used to evaluate the success of TaskForge:
+The following business metrics will be used to evaluate the success of Indom:
 
 | KPI | Description |
 |------|-------------|

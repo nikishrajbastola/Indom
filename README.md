@@ -1,14 +1,14 @@
-# Taskforge
+# Indom
 
 A full-stack platform connecting students with organizations through real-world project opportunities.
 
 ## Live Demo 
 
-**Live Demo** https://taskforge-puce.vercel.app/
+**Live Demo** https://Indom-puce.vercel.app/
 
 ## Project Overview
 
-TaskForge is a full-stack web application designed to bridge the gap between students seeking hands-on experience and organizations looking for talented individuals to work on real-world projects.
+Indom is a full-stack web application designed to bridge the gap between students seeking hands-on experience and organizations looking for talented individuals to work on real-world projects.
 
 Students can create an account, browse available opportunities, apply to projects, and track their application status. Organizations can securely manage projects, review applicants, update application statuses, and monitor project activity through an analytics dashboard.
 
@@ -60,7 +60,7 @@ This project demonstrates full-stack development, authentication, database manag
 ## Project Structure
 
 ```text
-taskforge/
+Indom/
 ├── app/                 # Application pages, layouts, and routing
 ├── components/          # Reusable UI components
 ├── docs/                # Business analysis and project documentation
@@ -86,7 +86,7 @@ The `docs/` folder contains project planning and business analysis artifacts, in
 
 ## System Architecture
 
-TaskForge follows a modern full-stack architecture using **Next.js**, **Supabase Auth**, and **PostgreSQL**. The frontend provides separate experiences for students and organizations, while Supabase manages authentication and database operations.
+Indom follows a modern full-stack architecture using **Next.js**, **Supabase Auth**, and **PostgreSQL**. The frontend provides separate experiences for students and organizations, while Supabase manages authentication and database operations.
 
 ```text
                       Students                    Organizations
@@ -158,8 +158,8 @@ Students and organizations access the application through a unified Next.js fron
 ### Clone the repository
 
 ```bash
-git clone https://github.com/nikishrajbastola/taskforge.git
-cd taskforge
+git clone https://github.com/nikishrajbastola/Indom.git
+cd Indom
 ```
 
 ### Install dependencies

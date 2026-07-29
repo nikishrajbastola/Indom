@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "TaskForge",
+  title: "Indom",
   description: "Real work experience for students. Fast execution for organizations.",
 };
 

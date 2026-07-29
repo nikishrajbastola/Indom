@@ -51,7 +51,7 @@ function SignupContent() {
     <main style={page}>
       <section style={card}>
         <Link href="/" style={brand}>
-          TaskForge
+          Indom
         </Link>
 
         <h1 style={title}>Create your account</h1>

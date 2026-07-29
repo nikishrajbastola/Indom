@@ -5,7 +5,7 @@ export default function Home() {
     <main style={page}>
       {/* navbar */}
       <nav style={nav}>
-        <div style={logo}>TaskForge</div>
+        <div style={logo}>Indom</div>
 
         <div style={navRight}>
           <Link href="/login" style={navLink}>

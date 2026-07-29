@@ -4,7 +4,7 @@ export default function OrganizationAuthPage() {
   return (
     <main style={page}>
       <section style={left}>
-        <Link href="/" style={logo}>TaskForge</Link>
+        <Link href="/" style={logo}>Indom</Link>
 
         <div>
           <p style={tag}>FOR ORGANIZATIONS</p>

@@ -142,7 +142,7 @@ export default function PublicOrganizationProfilePage() {
         </Link>
 
         <Link href="/" style={brand}>
-          TaskForge
+          Indom
         </Link>
       </nav>
 

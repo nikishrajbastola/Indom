@@ -83,7 +83,7 @@ export default function LoginPage() {
     <main style={page}>
       <section style={card}>
         <Link href="/" style={brand}>
-          TaskForge
+          Indom
         </Link>
 
         <h1 style={title}>Welcome back</h1>
@@ -125,7 +125,7 @@ export default function LoginPage() {
         </div>
 
         <p style={bottomText}>
-          New to TaskForge?{" "}
+          New to Indom?{" "}
           <Link href="/signup" style={link}>
             Create account
           </Link>

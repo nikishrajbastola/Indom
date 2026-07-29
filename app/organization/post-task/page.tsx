@@ -262,8 +262,8 @@ export default function PostTaskPage() {
             {isRejected
               ? "Your previous verification request was not approved. Review your organization information and submit an updated application."
               : isPending
-                ? "TaskForge is reviewing your organization information. You will be able to publish projects after your application is approved."
-                : "Only verified organizations can publish projects and recruit students through TaskForge."}
+                ? "Indom is reviewing your organization information. You will be able to publish projects after your application is approved."
+                : "Only verified organizations can publish projects and recruit students through Indom."}
           </p>
 
           <div style={buttonRow}>
@@ -291,7 +291,7 @@ export default function PostTaskPage() {
     <main style={page}>
       <aside style={sidebar}>
         <Link href="/" style={brand}>
-          TaskForge
+          Indom
         </Link>
 
         <nav style={navLinks}>

@@ -267,7 +267,7 @@ export default function OrganizationVerificationPage() {
           <h1 style={statusTitle}>Your application is under review.</h1>
 
           <p style={statusDescription}>
-            TaskForge is reviewing your organization information. You cannot
+            Indom is reviewing your organization information. You cannot
             post projects until the application is approved.
           </p>
 
@@ -317,7 +317,7 @@ export default function OrganizationVerificationPage() {
       <section style={container}>
         <div style={header}>
           <Link href="/" style={brand}>
-            TaskForge
+            Indom
           </Link>
 
           <Link href="/organization" style={dashboardLink}>
@@ -332,7 +332,7 @@ export default function OrganizationVerificationPage() {
             <h1 style={title}>Apply to publish opportunities.</h1>
 
             <p style={subtitle}>
-              TaskForge reviews every organization before allowing it to post
+              Indom reviews every organization before allowing it to post
               projects. This protects students from misleading or fraudulent
               opportunities.
             </p>

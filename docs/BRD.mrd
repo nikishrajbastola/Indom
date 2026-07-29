@@ -1,0 +1,168 @@
+Business Requirements Document (BRD)
+Project Name
+Indom – Student Project Marketplace Platform
+Version
+1.0
+Author
+Nikish Bastola
+Date
+June 2026
+
+1. Executive Summary
+Indom is a web-based platform designed to connect students with startups, organizations, research labs, and university departments through short-term project opportunities.
+The platform addresses the gap between students seeking practical experience and organizations seeking motivated talent for project-based work. Indom enables organizations to post projects, review applicants, and manage project workflows while allowing students to discover opportunities and gain real-world experience.
+
+2. Business Problem
+Students often graduate with limited practical experience despite completing academic coursework.
+At the same time, startups, research groups, and organizations frequently require support for short-term initiatives but lack an efficient way to identify and engage qualified student talent.
+Current methods such as email outreach, spreadsheets, and informal networking are inefficient, difficult to scale, and lack transparency.
+A centralized platform is needed to streamline project discovery, application management, and collaboration between students and organizations.
+
+3. Business Objectives
+The primary objectives of Indom are:
+1.	Increase student access to experiential learning opportunities.
+2.	Reduce the effort required for organizations to recruit student contributors.
+3.	Create a centralized marketplace for project-based collaboration.
+4.	Improve visibility into application and project workflows.
+5.	Enable data-driven decision-making through analytics and reporting.
+
+4. Stakeholders
+Primary Stakeholders
+Students
+Individuals seeking project-based learning opportunities.
+Organizations
+Companies, startups, university departments, and research groups posting projects.
+Research Labs
+Faculty-led teams seeking student contributors.
+Indom Administrators
+Platform administrators responsible for governance and maintenance.
+
+Secondary Stakeholders
+Universities
+Institutions interested in increasing student engagement and employability.
+Faculty Members
+Professors seeking students for research and innovation initiatives.
+
+5. Scope
+In Scope
+•	Student registration and authentication
+•	Organization registration and authentication
+•	Project posting and management
+•	Student project browsing
+•	Project applications
+•	Applicant review workflows
+•	Application status tracking
+•	Analytics dashboard
+•	CSV reporting and export functionality
+Out of Scope
+•	Payroll processing
+•	Financial transactions
+•	Background checks
+•	Real-time messaging
+•	Mobile application support
+
+6. Functional Requirements
+FR-01 User Authentication
+The system shall allow users to register and log in securely.
+Acceptance Criteria
+•	Users can create accounts.
+•	Users can log in.
+•	Users can log out.
+
+FR-02 Role Management
+The system shall support the following roles:
+•	Student
+•	Organization
+•	Administrator
+Acceptance Criteria
+•	Each user is assigned a role.
+•	Users access role-specific functionality.
+
+FR-03 Project Posting
+Organizations shall be able to create and manage project listings.
+Acceptance Criteria
+•	Create project
+•	Edit project
+•	View project
+•	Archive project
+
+FR-04 Project Applications
+Students shall be able to apply for projects.
+Acceptance Criteria
+•	Submit application
+•	Attach project interest message
+•	Track application status
+
+FR-05 Applicant Workflow Management
+Organizations shall manage applicants through a structured workflow.
+Workflow States
+•	Applied
+•	Under Review
+•	Interviewing
+•	Accepted
+•	Rejected
+•	Completed
+Acceptance Criteria
+•	Status updates are saved.
+•	Workflow history is visible.
+
+FR-06 Analytics Dashboard
+Organizations shall access project and applicant analytics.
+KPIs
+•	Total Projects
+•	Total Applications
+•	Pending Applications
+•	Accepted Applications
+•	Acceptance Rate
+•	Top Requested Skills
+
+FR-07 Reporting
+Organizations shall export applicant data.
+Acceptance Criteria
+•	CSV export available
+•	Applicant details included
+•	Status information included
+
+7. Non-Functional Requirements
+Security
+•	User authentication required
+•	Role-based access controls enforced
+•	Secure database access through Supabase RLS policies
+Performance
+•	Dashboard pages load within 3 seconds under normal usage
+Availability
+•	Platform available 99% of the time during operational periods
+Scalability
+•	Platform supports growth in users, projects, and applications without redesign
+
+8. Success Metrics
+The success of Indom will be measured using the following KPIs:
+Metric	Description
+Projects Posted	Total number of active projects
+Applications Submitted	Total applications received
+Acceptance Rate	Accepted applications / Total applications
+Project Completion Rate	Completed projects / Total projects
+Active Organizations	Number of participating organizations
+Active Students	Number of engaged students
+
+9. Risks
+Risk	                                                              Impact
+Low organization adoption	                                        Reduced project availability
+Low student engagement	                                            Reduced platform value
+Data quality issues	                                                Inaccurate analytics
+Scalability limitations	                                            Performance degradation
+
+10. Future Enhancements
+•	AI-powered project recommendations
+•	Resume matching and skill analysis
+•	Automated applicant ranking
+•	Integrated messaging system
+•	Mobile application
+•	Advanced analytics and forecasting
+
+
+Prepared By:
+Nikish Bastola
+Project:
+Indom Student Project Marketplace Platform
+

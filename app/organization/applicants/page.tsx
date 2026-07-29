@@ -163,7 +163,7 @@ export default function OrganizationApplicantsPage() {
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "taskforge-applicants.csv";
+    link.download = "Indom-applicants.csv";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -240,7 +240,7 @@ export default function OrganizationApplicantsPage() {
     <main style={page}>
       <aside style={sidebar}>
         <Link href="/" style={brand}>
-          TaskForge
+          Indom
         </Link>
 
         <nav style={nav}>

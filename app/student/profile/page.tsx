@@ -181,7 +181,7 @@ export default function StudentProfilePage() {
   return (
     <main style={page}>
       <aside style={sidebar}>
-        <Link href="/" style={brand}>TaskForge</Link>
+        <Link href="/" style={brand}>Indom</Link>
 
         <nav style={nav}>
           <Link href="/student" style={navItem}>Overview</Link>

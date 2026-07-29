@@ -265,7 +265,7 @@ export default function AdminOrganizationsPage() {
     <main style={page}>
       <aside style={sidebar}>
         <Link href="/" style={brand}>
-          TaskForge
+          Indom
         </Link>
 
         <p style={sidebarLabel}>ADMINISTRATION</p>

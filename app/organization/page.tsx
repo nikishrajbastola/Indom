@@ -6,7 +6,7 @@ export default function OrganizationOverviewPage() {
     <main style={page}>
       <aside style={sidebar}>
         <Link href="/" style={brand}>
-          TaskForge
+          Indom
         </Link>
 
         <nav style={nav}>

@@ -5,7 +5,7 @@ export default function StudentOverview() {
   return (
     <main style={page}>
       <aside style={sidebar}>
-        <h2 style={brand}>TaskForge</h2>
+        <h2 style={brand}>Indom</h2>
 
         <nav style={nav}>
           <Link href="/student" style={activeNav}>
