@@ -10,6 +10,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
 
   const handleLogin = async () => {
@@ -101,15 +102,27 @@ export default function LoginPage() {
             autoComplete="email"
           />
 
-          <input
-            style={input}
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            onKeyDown={handleKeyDown}
-            autoComplete="current-password"
-          />
+          <div style={passwordWrapper}>
+            <input
+              style={passwordInput}
+              placeholder="Password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              onKeyDown={handleKeyDown}
+              autoComplete="current-password"
+            />
+
+            <button
+              type="button"
+              style={passwordToggle}
+              onClick={() => setShowPassword((current) => !current)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
 
           <button
             type="button"
@@ -190,6 +203,30 @@ const input = {
   color: "white",
   fontSize: "16px",
   outline: "none",
+};
+
+const passwordWrapper = {
+  position: "relative" as const,
+  width: "100%",
+};
+
+const passwordInput = {
+  ...input,
+  paddingRight: "82px",
+};
+
+const passwordToggle = {
+  position: "absolute" as const,
+  top: "50%",
+  right: "14px",
+  transform: "translateY(-50%)",
+  border: "none",
+  background: "transparent",
+  color: "#c4b5fd",
+  fontSize: "14px",
+  fontWeight: 700,
+  cursor: "pointer",
+  padding: "6px",
 };
 
 const button = {
