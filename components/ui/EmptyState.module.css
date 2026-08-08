@@ -1,0 +1,53 @@
+.empty {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid #c7d7fe;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.empty h3 {
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.empty p {
+  max-width: 520px;
+  margin-top: var(--space-1);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.action {
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 420px) {
+  .empty {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

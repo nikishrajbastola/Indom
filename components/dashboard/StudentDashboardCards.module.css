@@ -1,0 +1,382 @@
+.statCard {
+  min-height: 150px;
+}
+
+.statHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statIcon {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.statIcon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.statCard strong {
+  display: block;
+  margin: 14px 0 8px;
+  color: var(--color-text);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 28px;
+  font-weight: 620;
+  letter-spacing: -0.04em;
+}
+
+.textLink {
+  width: fit-content;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.textLink:hover {
+  color: var(--color-primary-hover);
+}
+
+.applicationList {
+  display: grid;
+}
+
+.applicationRow {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: 17px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.applicationRow:first-child {
+  padding-top: 2px;
+  border-top: 0;
+}
+
+.applicationRow:last-child {
+  padding-bottom: 2px;
+}
+
+.applicationInfo {
+  min-width: 0;
+}
+
+.applicationInfo h3 {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.applicationInfo p {
+  margin-top: 5px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.applicationMeta {
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.applicationMeta time {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.inlineError {
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.inlineError p {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.inlineError button {
+  margin-top: var(--space-1);
+  padding-left: 0;
+}
+
+.errorIcon {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid #fecdca;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.profileCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.eyebrow {
+  margin-bottom: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.profileHeader h2 {
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.profilePercentage {
+  color: var(--color-primary);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 16px;
+  font-weight: 620;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 6px;
+  margin: 2px 0 var(--space-4);
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+}
+
+.progressTrack span {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.profileDescription {
+  margin-bottom: var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.profileAction {
+  width: 100%;
+  margin-top: auto;
+}
+
+.projectCard,
+.projectSkeleton {
+  min-width: 0;
+  min-height: 244px;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.projectCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.projectCard:hover {
+  border-color: #b9c8f9;
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.06);
+  transform: translateY(-1px);
+}
+
+.organizationName {
+  margin-bottom: 10px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  overflow-wrap: anywhere;
+}
+
+.projectCard h3 {
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.projectDescription {
+  display: -webkit-box;
+  margin-top: 10px;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-5);
+}
+
+.tagList span {
+  max-width: 100%;
+  padding: 5px 7px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: 17px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.projectFooter > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cardArrow {
+  color: var(--color-primary);
+  font-size: 15px;
+}
+
+.skeletonNumber {
+  width: 58px;
+  height: 31px;
+  margin: 14px 0 11px;
+}
+
+.skeletonTitle {
+  width: min(210px, 48vw);
+  height: 13px;
+  margin-bottom: 9px;
+}
+
+.skeletonMeta {
+  width: 105px;
+  height: 10px;
+}
+
+.skeletonBadge {
+  width: 72px;
+  height: 22px;
+}
+
+.profileSkeleton {
+  display: grid;
+  gap: 11px;
+}
+
+.skeletonLine,
+.skeletonLineShort {
+  width: 100%;
+  height: 11px;
+}
+
+.skeletonLineShort {
+  width: 70%;
+}
+
+.projectSkeleton {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.skeletonProjectTitle {
+  width: 82%;
+  height: 17px;
+}
+
+.textLink:focus-visible,
+.projectCard:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+@media (max-width: 420px) {
+  .applicationRow {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .applicationMeta {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .inlineError {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projectCard {
+    transition: none;
+  }
+}

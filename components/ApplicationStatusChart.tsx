@@ -32,25 +32,26 @@ export default function ApplicationStatusChart({
         <BarChart data={data}>
           <XAxis
             dataKey="status"
-            stroke="#a1a1aa"
+            stroke="#667085"
           />
 
           <YAxis
-            stroke="#a1a1aa"
+            stroke="#667085"
             allowDecimals={false}
           />
 
           <Tooltip
             contentStyle={{
-              background: "#111",
-              border: "1px solid #333",
-              borderRadius: "12px",
+              background: "#ffffff",
+              border: "1px solid #e4e7ec",
+              borderRadius: "10px",
+              color: "#101828",
             }}
           />
 
           <Bar
             dataKey="count"
-            fill="#c084fc"
+            fill="#3157d5"
             radius={[8, 8, 0, 0]}
           />
         </BarChart>

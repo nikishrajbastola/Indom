@@ -1,203 +1,95 @@
-import Link from "next/link";
-import LogoutButton from "@/components/LogoutButton";
+"use client";
+
+import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Badge } from "@/components/ui/Badge";
+import { ButtonLink } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
+import workspace from "@/components/ui/Workspace.module.css";
+import { supabase } from "@/lib/supabase";
+
+const actions = [
+  { href: "/organization/tasks", title: "Manage projects", text: "Review, edit, and maintain projects published by your organization." },
+  { href: "/organization/applicants", title: "Review applicants", text: "Move student applications through review, interview, and decision stages." },
+  { href: "/organization/analytics", title: "View analytics", text: "Understand application volume, outcomes, and in-demand skills." },
+] as const;
 
 export default function OrganizationOverviewPage() {
+  const [metrics, setMetrics] = useState({ projects: 0, applicants: 0, accepted: 0 });
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    const loadOverview = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setErrorMessage("You must be logged in to view this workspace.");
+        setLoading(false);
+        return;
+      }
+
+      const [tasksResult, applicationsResult] = await Promise.all([
+        supabase.from("tasks").select("id").eq("organization_id", user.id),
+        supabase.from("applications").select("id, status, tasks!inner(organization_id)").eq("tasks.organization_id", user.id),
+      ]);
+
+      if (tasksResult.error || applicationsResult.error) {
+        setErrorMessage(tasksResult.error?.message || applicationsResult.error?.message || "Overview data could not be loaded.");
+      } else {
+        const applications = applicationsResult.data || [];
+        setMetrics({
+          projects: (tasksResult.data || []).length,
+          applicants: applications.length,
+          accepted: applications.filter((application) => application.status === "accepted" || application.status === "completed").length,
+        });
+      }
+      setLoading(false);
+    };
+
+    const initialLoad = window.setTimeout(() => void loadOverview(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, []);
+
   return (
-    <main style={page}>
-      <aside style={sidebar}>
-        <Link href="/" style={brand}>
-          Indom
-        </Link>
+    <div className={workspace.page}>
+      <div className={workspace.headerGap}>
+        <PageHeader
+          eyebrow="Organization dashboard"
+          title="Manage your project pipeline"
+          description="Publish opportunities, review applicants, and keep collaboration moving."
+          action={<ButtonLink href="/organization/post-task">Post project</ButtonLink>}
+        />
+      </div>
 
-        <nav style={nav}>
-          <Link href="/organization" style={activeNav}>
-            Overview
-          </Link>
+      {errorMessage && <p className={`${workspace.notice} ${workspace.noticeDanger}`} role="alert">{errorMessage}</p>}
 
-          <Link href="/organization/tasks" style={navItem}>
-            My Tasks
-          </Link>
-
-          <Link href="/organization/applicants" style={navItem}>
-            Applicants
-          </Link>
-
-          <Link href="/organization/analytics" style={navItem}>
-            Analytics
-          </Link>
-
-          <Link href="/organization/post-task" style={navItem}>
-            Post Task
-          </Link>
-
-          <Link href="/organization/profile" style={navItem}>
-            Profile
-          </Link>
-        </nav>
-
-        <div
-          style={{
-            marginTop: "auto",
-            paddingTop: "30px",
-            borderTop: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          <LogoutButton />
-        </div>
-      </aside>
-
-      <section style={content}>
-        <p style={eyebrow}>ORGANIZATION DASHBOARD</p>
-
-        <h1 style={title}>
-          Manage your organization workflow.
-        </h1>
-
-        <p style={subtitle}>
-          Post projects, review applicants, analyze engagement, and manage
-          student collaboration.
-        </p>
-
-        <section style={grid}>
-          <Link href="/organization/tasks" style={card}>
-            <h2 style={cardTitle}>My Tasks</h2>
-
-            <p style={cardText}>
-              View and manage all projects posted by your organization.
-            </p>
-          </Link>
-
-          <Link href="/organization/applicants" style={card}>
-            <h2 style={cardTitle}>Applicants</h2>
-
-            <p style={cardText}>
-              Review students who applied to your projects.
-            </p>
-          </Link>
-
-          <Link href="/organization/analytics" style={card}>
-            <h2 style={cardTitle}>Analytics</h2>
-
-            <p style={cardText}>
-              Track applications, acceptance rate, and project engagement KPIs.
-            </p>
-          </Link>
-
-          <Link href="/organization/post-task" style={card}>
-            <h2 style={cardTitle}>Post a Task</h2>
-
-            <p style={cardText}>
-              Create a new project and start receiving applications.
-            </p>
-          </Link>
-
-          <Link href="/organization/profile" style={card}>
-            <h2 style={cardTitle}>Organization Profile</h2>
-
-            <p style={cardText}>
-              Manage your organization identity, website, and company information.
-            </p>
-          </Link>
-        </section>
+      <section className={workspace.grid} aria-label="Organization metrics">
+        {[{ label: "Published projects", value: metrics.projects }, { label: "Total applicants", value: metrics.applicants }, { label: "Accepted or completed", value: metrics.accepted }].map((metric) => (
+          <Card key={metric.label}>
+            {loading ? <Skeleton style={{ width: 56, height: 34 }} /> : <p className={workspace.metricValue}>{metric.value}</p>}
+            <p className={workspace.metricLabel}>{metric.label}</p>
+          </Card>
+        ))}
       </section>
-    </main>
+
+      <section style={{ marginTop: 24 }}>
+        <div className={workspace.toolbar}><div><p className={workspace.eyebrow}>Workspace</p><h2 className={workspace.sectionTitle}>Operational tools</h2></div><Badge tone="info">Organization</Badge></div>
+        <div className={workspace.dashboardGrid}>
+          {actions.map((action) => (
+            <Card key={action.href} className={workspace.card}>
+              <h3 className={workspace.cardTitle}>{action.title}</h3>
+              <p className={workspace.description}>{action.text}</p>
+              <ButtonLink className={workspace.spacer} href={action.href} variant="secondary">Open</ButtonLink>
+            </Card>
+          ))}
+          <Card className={workspace.card}>
+            <h3 className={workspace.cardTitle}>Organization profile</h3>
+            <p className={workspace.description}>Keep your identity, website, and organization information current for students.</p>
+            <ButtonLink className={workspace.spacer} href="/organization/profile" variant="secondary">Manage profile</ButtonLink>
+          </Card>
+        </div>
+      </section>
+    </div>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background: "#050505",
-  color: "white",
-  display: "grid",
-  gridTemplateColumns: "260px 1fr",
-  fontFamily:
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const sidebar = {
-  minHeight: "100vh",
-  borderRight: "1px solid rgba(255,255,255,0.08)",
-  padding: "28px",
-  background: "#080808",
-
-  display: "flex",
-  flexDirection: "column" as const,
-};
-
-const brand = {
-  color: "white",
-  textDecoration: "none",
-  fontSize: "22px",
-  fontWeight: 700,
-  marginBottom: "40px",
-  display: "block",
-};
-
-const nav = {
-  display: "grid",
-  gap: "10px",
-};
-
-const navItem = {
-  color: "#aaa",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-};
-
-const activeNav = {
-  color: "white",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
-};
-
-const content = {
-  padding: "56px",
-};
-
-const eyebrow = {
-  color: "#c084fc",
-  fontSize: "13px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-};
-
-const title = {
-  fontSize: "58px",
-  margin: "10px 0",
-  letterSpacing: "-0.05em",
-};
-
-const subtitle = {
-  color: "#aaa",
-  fontSize: "18px",
-  marginBottom: "36px",
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(280px, 1fr))",
-  gap: "20px",
-};
-
-const card = {
-  padding: "28px",
-  borderRadius: "24px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  textDecoration: "none",
-  color: "white",
-};
-
-const cardTitle = {
-  fontSize: "26px",
-  marginBottom: "12px",
-};
-
-const cardText = {
-  color: "#b5b5b5",
-  lineHeight: "1.6",
-};

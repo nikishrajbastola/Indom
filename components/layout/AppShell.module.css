@@ -1,0 +1,299 @@
+.shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  background: var(--shell-background);
+  color: var(--shell-text);
+}
+
+.light {
+  --shell-background: var(--color-canvas);
+  --shell-sidebar: #ffffff;
+  --shell-surface: var(--color-surface-subtle);
+  --shell-surface-raised: #ffffff;
+  --shell-border: var(--color-border);
+  --shell-text: var(--color-text);
+  --shell-muted: var(--color-text-secondary);
+  --shell-subtle: var(--color-text-muted);
+  --shell-accent: var(--color-primary);
+  --shell-accent-soft: var(--color-primary-soft);
+  --shell-backdrop: rgba(16, 24, 40, 0.38);
+}
+
+.skipLink {
+  position: fixed;
+  z-index: 100;
+  top: 10px;
+  left: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  transform: translateY(-150%);
+}
+
+.skipLink:focus {
+  transform: translateY(0);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 18px 20px;
+  border-right: 1px solid var(--shell-border);
+  background: var(--shell-sidebar);
+}
+
+.brand,
+.mobileBrand {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--shell-text);
+  font-size: 19px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+.brandMark {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--shell-accent) 28%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--shell-accent-soft);
+  color: var(--shell-accent);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.workspaceLabel {
+  margin: 14px 0 0 38px;
+  color: var(--shell-subtle);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.navigation {
+  display: grid;
+  gap: 4px;
+  margin-top: 38px;
+}
+
+.navLink {
+  position: relative;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--shell-muted);
+  font-size: 14px;
+  font-weight: 560;
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+.navLink:hover {
+  border-color: var(--shell-border);
+  background: var(--shell-surface);
+  color: var(--shell-text);
+}
+
+.navLink.active {
+  border-color: color-mix(in srgb, var(--shell-accent) 16%, var(--shell-border));
+  background: var(--shell-accent-soft);
+  color: var(--shell-accent);
+}
+
+.navLink.active::before {
+  position: absolute;
+  left: -1px;
+  width: 2px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--shell-accent);
+  content: "";
+}
+
+.navIcon {
+  width: 17px;
+  height: 17px;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.navIcon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.navLink:first-child .navIcon svg path {
+  fill: currentColor;
+  stroke: none;
+}
+
+.sidebarFooter {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--shell-border);
+}
+
+.logoutButton {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--shell-muted);
+  font-size: 14px;
+  font-weight: 560;
+  text-align: left;
+}
+
+.logoutButton:hover {
+  border-color: var(--shell-border);
+  background: var(--shell-surface);
+  color: var(--shell-text);
+}
+
+.main {
+  min-width: 0;
+  min-height: 100dvh;
+  background: var(--shell-background);
+  color: var(--shell-text);
+}
+
+.mobileHeader,
+.mobileMenu,
+.backdrop {
+  display: none;
+}
+
+.navLink:focus-visible,
+.brand:focus-visible,
+.mobileBrand:focus-visible,
+.menuButton:focus-visible,
+.logoutButton:focus-visible {
+  outline: 2px solid var(--shell-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    display: block;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .mobileHeader {
+    position: sticky;
+    z-index: 30;
+    top: 0;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px clamp(16px, 4vw, 28px);
+    border-bottom: 1px solid var(--shell-border);
+    background: color-mix(in srgb, var(--shell-sidebar) 94%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobileBrand {
+    font-size: 18px;
+  }
+
+  .menuButton {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    border: 1px solid var(--shell-border);
+    border-radius: var(--radius-sm);
+    background: var(--shell-surface-raised);
+    color: var(--shell-text);
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .menuIcon {
+    width: 14px;
+    display: grid;
+    gap: 3px;
+  }
+
+  .menuIcon span {
+    width: 100%;
+    height: 1px;
+    display: block;
+    background: currentColor;
+  }
+
+  .backdrop {
+    position: fixed;
+    z-index: 20;
+    inset: 64px 0 0;
+    display: block;
+    width: 100%;
+    border: 0;
+    background: var(--shell-backdrop);
+    cursor: default;
+  }
+
+  .mobileMenu {
+    position: fixed;
+    z-index: 25;
+    top: 76px;
+    right: 12px;
+    left: 12px;
+    display: block;
+    padding: 8px;
+    border: 1px solid var(--shell-border);
+    border-radius: var(--radius-lg);
+    background: var(--shell-surface-raised);
+    box-shadow: var(--shadow-menu);
+  }
+
+  .mobileMenu .navigation {
+    margin-top: 0;
+  }
+
+  .mobileFooter {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--shell-border);
+  }
+
+  .main {
+    min-height: calc(100dvh - 64px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink {
+    transition: none;
+  }
+}

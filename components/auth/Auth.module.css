@@ -1,0 +1,226 @@
+.page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+  background: var(--color-canvas);
+  color: var(--color-text);
+}
+
+.card {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 24px;
+  padding: clamp(24px, 5vw, 36px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.brand {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text);
+  font-size: 19px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+.brandMark {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 720;
+}
+
+.heading {
+  display: grid;
+  gap: 8px;
+}
+
+.heading h1 {
+  color: var(--color-text);
+  font-size: clamp(28px, 6vw, 34px);
+  font-weight: 720;
+  letter-spacing: -0.04em;
+}
+
+.heading p,
+.footer,
+.choiceText {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+}
+
+.form > button {
+  width: 100%;
+}
+
+.passwordField {
+  position: relative;
+}
+
+.passwordField input {
+  padding-right: 68px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  min-width: 52px;
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 680;
+  transform: translateY(-50%);
+}
+
+.passwordToggle:hover {
+  background: var(--color-primary-soft);
+}
+
+.requirements {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+.requirementsTitle {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.requirementsList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 12px;
+  list-style: none;
+}
+
+.requirement {
+  display: flex;
+  gap: 7px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.requirementMet,
+.match {
+  color: var(--color-success);
+}
+
+.mismatch {
+  color: var(--color-danger);
+}
+
+.match,
+.mismatch {
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.footer {
+  text-align: center;
+}
+
+.link {
+  color: var(--color-primary);
+  font-weight: 680;
+}
+
+.choicePage {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  background: var(--color-canvas);
+}
+
+.choiceIntro {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 64px;
+  padding: clamp(32px, 6vw, 72px);
+  background: var(--color-primary-soft);
+}
+
+.choiceCopy {
+  max-width: 640px;
+  display: grid;
+  gap: 16px;
+}
+
+.choiceCopy span {
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.choiceCopy h1 {
+  color: var(--color-text);
+  font-size: clamp(36px, 6vw, 60px);
+  font-weight: 740;
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+}
+
+.choiceCopy p {
+  color: var(--color-text-secondary);
+  font-size: clamp(16px, 2vw, 19px);
+  line-height: 1.65;
+}
+
+.choicePanel {
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+}
+
+.choiceActions {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .choicePage {
+    grid-template-columns: 1fr;
+  }
+
+  .choiceIntro {
+    gap: 40px;
+    padding: 28px 20px 40px;
+  }
+
+  .choiceCopy h1 {
+    font-size: clamp(34px, 11vw, 48px);
+  }
+
+  .requirementsList {
+    grid-template-columns: 1fr;
+  }
+}
