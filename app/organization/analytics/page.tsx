@@ -1,458 +1,194 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import ApplicationStatusChart from "@/components/ApplicationStatusChart";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import styles from "@/components/product/Product.module.css";
+import { LoadingState } from "@/components/ui/EmptyState";
 import { supabase } from "@/lib/supabase";
 
-type Task = {
-  id: string;
-  skills: string | null;
-};
+type Task = { id: string; skills: string | null };
+type Application = { id: string; status: string | null };
 
-type Application = {
-  id: string;
-  status: string | null;
+const initialMetrics = {
+  totalProjects: 0,
+  totalApplications: 0,
+  pendingApplications: 0,
+  acceptedApplications: 0,
+  rejectedApplications: 0,
+  acceptanceRate: 0,
+  topSkills: [] as string[],
 };
 
 export default function OrganizationAnalyticsPage() {
-  const [metrics, setMetrics] = useState({
-    totalProjects: 0,
-    totalApplications: 0,
-    pendingApplications: 0,
-    acceptedApplications: 0,
-    rejectedApplications: 0,
-    acceptanceRate: 0,
-    topSkills: [] as string[],
-  });
+  const [metrics, setMetrics] = useState(initialMetrics);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
+  const loadAnalytics = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
-  const fetchAnalytics = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Please log in to view organization activity.");
+      setLoading(false);
+      return;
+    }
 
-    if (!user) return;
-
-    const { data: tasks } = await supabase
+    const { data: taskData, error: taskError } = await supabase
       .from("tasks")
       .select("id, skills")
       .eq("organization_id", user.id);
 
-    const organizationTasks = (tasks || []) as Task[];
+    if (taskError) {
+      setError("We couldn’t load your organization activity.");
+      setLoading(false);
+      return;
+    }
 
-    const taskIds = organizationTasks.map((task) => task.id);
-
+    const tasks = (taskData || []) as Task[];
+    const taskIds = tasks.map((task) => task.id);
     const skillCounts: Record<string, number> = {};
 
-    organizationTasks.forEach((task) => {
-      if (!task.skills) return;
-
-      task.skills.split(",").forEach((skill: string) => {
+    tasks.forEach((task) => {
+      task.skills?.split(",").forEach((skill) => {
         const cleanSkill = skill.trim();
-
-        if (!cleanSkill) return;
-
-        skillCounts[cleanSkill] =
-          (skillCounts[cleanSkill] || 0) + 1;
+        if (cleanSkill) skillCounts[cleanSkill] = (skillCounts[cleanSkill] || 0) + 1;
       });
     });
 
     const topSkills = Object.entries(skillCounts)
-      .sort(
-        (a: [string, number], b: [string, number]) =>
-          b[1] - a[1]
-      )
+      .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([skill]: [string, number]) => skill);
+      .map(([skill]) => skill);
 
     if (taskIds.length === 0) {
-      setMetrics({
-        totalProjects: 0,
-        totalApplications: 0,
-        pendingApplications: 0,
-        acceptedApplications: 0,
-        rejectedApplications: 0,
-        acceptanceRate: 0,
-        topSkills,
-      });
-
+      setMetrics({ ...initialMetrics, topSkills });
+      setLoading(false);
       return;
     }
 
-    const { data: applications } = await supabase
+    const { data: applicationData, error: applicationError } = await supabase
       .from("applications")
       .select("id, status")
       .in("task_id", taskIds);
 
-    const organizationApplications =
-      (applications || []) as Application[];
+    if (applicationError) {
+      setError("We couldn’t load application activity.");
+      setLoading(false);
+      return;
+    }
 
-    const totalApplications =
-      organizationApplications.length;
-
-    const pendingApplications =
-      organizationApplications.filter(
-        (app) =>
-          app.status === "pending" ||
-          app.status === null
-      ).length;
-
-    const acceptedApplications =
-      organizationApplications.filter(
-        (app) => app.status === "accepted"
-      ).length;
-
-    const rejectedApplications =
-      organizationApplications.filter(
-        (app) => app.status === "rejected"
-      ).length;
-
-    const acceptanceRate =
-      totalApplications > 0
-        ? Math.round(
-            (acceptedApplications / totalApplications) *
-              100
-          )
-        : 0;
+    const applications = (applicationData || []) as Application[];
+    const accepted = applications.filter((application) => application.status === "accepted").length;
+    const pending = applications.filter((application) => !application.status || application.status === "pending").length;
+    const rejected = applications.filter((application) => application.status === "rejected").length;
 
     setMetrics({
-      totalProjects: taskIds.length,
-      totalApplications,
-      pendingApplications,
-      acceptedApplications,
-      rejectedApplications,
-      acceptanceRate,
+      totalProjects: tasks.length,
+      totalApplications: applications.length,
+      pendingApplications: pending,
+      acceptedApplications: accepted,
+      rejectedApplications: rejected,
+      acceptanceRate: applications.length > 0 ? Math.round((accepted / applications.length) * 100) : 0,
       topSkills,
     });
-  };
+    setLoading(false);
+  }, []);
 
-  const maxFunnelValue = Math.max(
-    metrics.pendingApplications,
-    metrics.acceptedApplications,
-    metrics.rejectedApplications,
-    1
-  );
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadAnalytics(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadAnalytics]);
+
+  const maxFunnelValue = Math.max(metrics.pendingApplications, metrics.acceptedApplications, metrics.rejectedApplications, 1);
 
   return (
-    <main style={page}>
-      <section style={content}>
-        <Link href="/organization" style={backLink}>
-          ← Back to Dashboard
-        </Link>
+    <AppShell workspace="organization">
+      <div className={styles.page}>
+        <PageHeader
+          eyebrow="Organization activity"
+          title="Project and application insights"
+          description="A factual view of the projects, applications, statuses, and requested skills already in your workspace."
+        />
 
-        <p style={eyebrow}>ANALYTICS</p>
+        {error && <p className={`${styles.notice} ${styles.noticeError}`} role="alert">{error}</p>}
 
-        <h1 style={title}>Organization Insights</h1>
+        {loading ? (
+          <LoadingState label="Loading organization activity" />
+        ) : (
+          <>
+            <section className={styles.analyticsGrid} aria-label="Organization metrics">
+              <Metric label="Projects" value={metrics.totalProjects} />
+              <Metric label="Applications" value={metrics.totalApplications} />
+              <Metric label="Pending" value={metrics.pendingApplications} />
+              <Metric label="Accepted" value={metrics.acceptedApplications} />
+              <Metric label="Acceptance rate" value={`${metrics.acceptanceRate}%`} />
+            </section>
 
-        <p style={subtitle}>
-          Monitor project performance, application
-          activity, and workflow KPIs.
-        </p>
-
-        <section style={grid}>
-          <div style={card}>
-            <p style={label}>Total Projects</p>
-            <h2 style={value}>{metrics.totalProjects}</h2>
-          </div>
-
-          <div style={card}>
-            <p style={label}>Applications</p>
-            <h2 style={value}>{metrics.totalApplications}</h2>
-          </div>
-
-          <div style={card}>
-            <p style={label}>Pending</p>
-            <h2 style={value}>
-              {metrics.pendingApplications}
-            </h2>
-          </div>
-
-          <div style={card}>
-            <p style={label}>Accepted</p>
-            <h2 style={value}>
-              {metrics.acceptedApplications}
-            </h2>
-          </div>
-
-          <div style={card}>
-            <p style={label}>Acceptance Rate</p>
-            <h2 style={value}>{metrics.acceptanceRate}%</h2>
-          </div>
-        </section>
-
-        <section style={panel}>
-          <div>
-            <p style={panelLabel}>
-              APPLICATION FUNNEL
-            </p>
-
-            <h2 style={panelTitle}>
-              Applications by Status
-            </h2>
-
-            <p style={panelText}>
-              Understand where applicants currently sit in
-              your review workflow.
-            </p>
-          </div>
-
-          <div style={funnelList}>
-            <FunnelRow
-              label="Pending"
-              value={metrics.pendingApplications}
-              max={maxFunnelValue}
-            />
-
-            <FunnelRow
-              label="Accepted"
-              value={metrics.acceptedApplications}
-              max={maxFunnelValue}
-            />
-
-            <FunnelRow
-              label="Rejected"
-              value={metrics.rejectedApplications}
-              max={maxFunnelValue}
-            />
-          </div>
-        </section>
-
-        <section style={panel}>
-          <div>
-            <p style={panelLabel}>STATUS CHART</p>
-
-            <h2 style={panelTitle}>
-              Application Status Breakdown
-            </h2>
-
-            <p style={panelText}>
-              Visualize how applications move through the
-              review pipeline.
-            </p>
-          </div>
-
-          <ApplicationStatusChart
-            pending={metrics.pendingApplications}
-            accepted={metrics.acceptedApplications}
-            rejected={metrics.rejectedApplications}
-          />
-        </section>
-
-        <section style={panel}>
-          <div>
-            <p style={panelLabel}>SKILL INSIGHTS</p>
-
-            <h2 style={panelTitle}>
-              Top Skills Requested
-            </h2>
-
-            <p style={panelText}>
-              Identify the most common skills requested
-              across your posted projects.
-            </p>
-          </div>
-
-          <div style={skillList}>
-            {metrics.topSkills.length === 0 ? (
-              <p style={emptyText}>
-                No skills listed yet.
-              </p>
-            ) : (
-              metrics.topSkills.map((skill, index) => (
-                <div key={skill} style={skillRow}>
-                  <span style={skillRank}>
-                    #{index + 1}
-                  </span>
-
-                  <span style={skillName}>{skill}</span>
+            <div className={styles.sectionStack}>
+              <section className={styles.panel} aria-labelledby="application-funnel-title">
+                <div className={styles.sectionHeader}>
+                  <div>
+                    <p className={styles.sectionEyebrow}>Application workflow</p>
+                    <h2 id="application-funnel-title">Applications by status</h2>
+                    <p className={styles.sectionDescription}>Understand where applicants currently sit in your review process.</p>
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
-        </section>
-      </section>
-    </main>
+                <div className={styles.funnelList}>
+                  <FunnelRow label="Pending" value={metrics.pendingApplications} max={maxFunnelValue} />
+                  <FunnelRow label="Accepted" value={metrics.acceptedApplications} max={maxFunnelValue} />
+                  <FunnelRow label="Rejected" value={metrics.rejectedApplications} max={maxFunnelValue} />
+                </div>
+              </section>
+
+              <div className={styles.workspaceGrid}>
+                <section className={styles.panel} aria-labelledby="status-chart-title">
+                  <div className={styles.sectionHeader}>
+                    <div>
+                      <p className={styles.sectionEyebrow}>Status chart</p>
+                      <h2 id="status-chart-title">Application breakdown</h2>
+                    </div>
+                  </div>
+                  <ApplicationStatusChart pending={metrics.pendingApplications} accepted={metrics.acceptedApplications} rejected={metrics.rejectedApplications} />
+                </section>
+
+                <section className={styles.panel} aria-labelledby="skill-insights-title">
+                  <div className={styles.sectionHeader}>
+                    <div>
+                      <p className={styles.sectionEyebrow}>Skill insights</p>
+                      <h2 id="skill-insights-title">Top requested skills</h2>
+                      <p className={styles.sectionDescription}>Most common skills across your posted projects.</p>
+                    </div>
+                  </div>
+                  <div className={styles.skillsList}>
+                    {metrics.topSkills.length === 0 ? <p className={styles.muted}>No skills listed yet.</p> : metrics.topSkills.map((skill, index) => (
+                      <div key={skill} className={styles.skillRow}><span className={styles.skillRank}>#{index + 1}</span><span>{skill}</span></div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </AppShell>
   );
 }
 
-function FunnelRow({
-  label,
-  value,
-  max,
-}: {
-  label: string;
-  value: number;
-  max: number;
-}) {
-  const width = `${Math.max(
-    (value / max) * 100,
-    value > 0 ? 10 : 0
-  )}%`;
+function Metric({ label, value }: { label: string; value: string | number }) {
+  return <div className={styles.analyticsCard}><p>{label}</p><strong>{value}</strong></div>;
+}
 
+function FunnelRow({ label, value, max }: { label: string; value: number; max: number }) {
+  const width = `${Math.max((value / max) * 100, value > 0 ? 8 : 0)}%`;
   return (
-    <div style={funnelRow}>
-      <div style={funnelTop}>
-        <span style={funnelLabel}>{label}</span>
-        <span style={funnelValue}>{value}</span>
-      </div>
-
-      <div style={barTrack}>
-        <div style={{ ...barFill, width }} />
-      </div>
+    <div className={styles.funnelRow}>
+      <div className={styles.funnelTop}><span>{label}</span><span>{value}</span></div>
+      <div className={styles.barTrack}><div className={styles.barFill} style={{ width }} /></div>
     </div>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background: "#050505",
-  color: "white",
-};
-
-const content = {
-  padding: "60px",
-};
-
-const backLink = {
-  color: "#aaa",
-  textDecoration: "none",
-};
-
-const eyebrow = {
-  marginTop: "24px",
-  color: "#c084fc",
-  fontSize: "13px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-};
-
-const title = {
-  fontSize: "54px",
-  marginTop: "10px",
-};
-
-const subtitle = {
-  color: "#aaa",
-  marginBottom: "40px",
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(250px, 1fr))",
-  gap: "20px",
-};
-
-const card = {
-  padding: "28px",
-  borderRadius: "24px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-};
-
-const label = {
-  color: "#aaa",
-  fontSize: "14px",
-};
-
-const value = {
-  fontSize: "42px",
-  marginTop: "10px",
-};
-
-const panel = {
-  marginTop: "28px",
-  padding: "30px",
-  borderRadius: "24px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-};
-
-const panelLabel = {
-  color: "#c084fc",
-  fontSize: "12px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-};
-
-const panelTitle = {
-  fontSize: "28px",
-  marginTop: "8px",
-  marginBottom: "8px",
-};
-
-const panelText = {
-  color: "#aaa",
-  marginBottom: "28px",
-};
-
-const funnelList = {
-  display: "grid",
-  gap: "18px",
-};
-
-const funnelRow = {
-  display: "grid",
-  gap: "8px",
-};
-
-const funnelTop = {
-  display: "flex",
-  justifyContent: "space-between",
-};
-
-const funnelLabel = {
-  color: "#d4d4d8",
-  fontWeight: 700,
-};
-
-const funnelValue = {
-  color: "white",
-  fontWeight: 800,
-};
-
-const barTrack = {
-  width: "100%",
-  height: "12px",
-  borderRadius: "999px",
-  background: "rgba(255,255,255,0.08)",
-  overflow: "hidden",
-};
-
-const barFill = {
-  height: "100%",
-  borderRadius: "999px",
-  background: "white",
-};
-
-const skillList = {
-  display: "grid",
-  gap: "12px",
-};
-
-const skillRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: "12px",
-  padding: "14px",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.05)",
-};
-
-const skillRank = {
-  color: "#c084fc",
-  fontWeight: 800,
-};
-
-const skillName = {
-  color: "white",
-  fontWeight: 700,
-};
-
-const emptyText = {
-  color: "#aaa",
-};

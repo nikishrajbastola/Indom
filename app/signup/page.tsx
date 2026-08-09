@@ -1,175 +1,199 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
+import authStyles from "@/components/auth/Auth.module.css";
+import { Button } from "@/components/ui/Button";
+import formStyles from "@/components/ui/FormControls.module.css";
 import { supabase } from "@/lib/supabase";
 
 function SignupContent() {
   const searchParams = useSearchParams();
-  const role = searchParams.get("role") || "student";
-
+  const requestedRole = searchParams.get("role");
+  const role = requestedRole === "organization" ? "organization" : "student";
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleSignup = async () => {
-    const { data, error } = await supabase.auth.signUp({
+  const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    const { data, error: signupError } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    if (error) {
-      alert(error.message);
+    if (signupError) {
+      setError(signupError.message);
+      setLoading(false);
       return;
     }
 
     const user = data.user;
 
     if (user) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert([
-          {
-            id: user.id,
-            full_name: fullName,
-            email: email,
-            role: role,
-          },
-        ]);
+      const { error: profileError } = await supabase.from("profiles").insert([
+        {
+          id: user.id,
+          full_name: fullName,
+          email,
+          role,
+        },
+      ]);
 
       if (profileError) {
-        alert(profileError.message);
+        setError("Your account was created, but we couldn’t finish setting up your profile.");
+        setLoading(false);
         return;
       }
-
-      alert("Account created successfully!");
     }
+
+    setSuccess("Account created. You can now continue to log in.");
+    setLoading(false);
   };
 
   return (
-    <main style={page}>
-      <section style={card}>
-        <Link href="/" style={brand}>
-          TaskForge
+    <main className={authStyles.page}>
+      <div className={authStyles.shell}>
+        <Link href="/" className={authStyles.brand} aria-label="Indom home">
+          <span className={authStyles.brandMark} aria-hidden="true">I</span>
+          Indom
         </Link>
 
-        <h1 style={title}>Create your account</h1>
+        <section className={authStyles.card} aria-labelledby="signup-title">
+          <p className={authStyles.eyebrow}>Create your account</p>
+          <h1 id="signup-title">Start with Indom</h1>
+          <p className={authStyles.description}>
+            Choose the workspace that matches how you’ll use the product.
+          </p>
 
-        <p style={subtitle}>
-          Start building real experience through real projects.
-        </p>
+          <div className={authStyles.roleSwitch} aria-label="Account type">
+            <Link
+              href="/signup?role=student"
+              className={role === "student" ? authStyles.activeRole : ""}
+              aria-current={role === "student" ? "true" : undefined}
+            >
+              Student
+            </Link>
+            <Link
+              href="/signup?role=organization"
+              className={role === "organization" ? authStyles.activeRole : ""}
+              aria-current={role === "organization" ? "true" : undefined}
+            >
+              Organization
+            </Link>
+          </div>
 
-        <div style={form}>
-          <input
-            style={input}
-            placeholder="Full name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
+          <form className={authStyles.form} onSubmit={handleSignup}>
+            {error && (
+              <p className={`${formStyles.notice} ${formStyles.noticeError}`} role="alert">
+                {error}
+              </p>
+            )}
+            {success && (
+              <p className={`${formStyles.notice} ${formStyles.noticeSuccess}`} role="status">
+                {success}
+              </p>
+            )}
 
-          <input
-            style={input}
-            placeholder="Email address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+            <div className={formStyles.field}>
+              <label className={formStyles.label} htmlFor="full-name">
+                {role === "organization" ? "Organization name" : "Full name"}
+              </label>
+              <input
+                id="full-name"
+                className={formStyles.input}
+                autoComplete="name"
+                required
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+              />
+            </div>
 
-          <input
-            style={input}
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+            <div className={formStyles.field}>
+              <label className={formStyles.label} htmlFor="email">Email address</label>
+              <input
+                id="email"
+                className={formStyles.input}
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </div>
 
-          <button style={button} onClick={handleSignup}>
-            Continue as {role}
-          </button>
-        </div>
+            <div className={formStyles.field}>
+              <label className={formStyles.label} htmlFor="password">Password</label>
+              <div className={formStyles.passwordWrap}>
+                <input
+                  id="password"
+                  className={formStyles.input}
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  minLength={6}
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className={formStyles.passwordToggle}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              <p className={formStyles.help}>Use at least 6 characters.</p>
+            </div>
 
-        <p style={bottomText}>
-          Already have an account?{" "}
-          <Link href="/login" style={link}>
-            Log in
-          </Link>
-        </p>
-      </section>
+            <div className={formStyles.field}>
+              <label className={formStyles.label} htmlFor="confirm-password">Confirm password</label>
+              <input
+                id="confirm-password"
+                className={formStyles.input}
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                minLength={6}
+                required
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+              />
+            </div>
+
+            <Button type="submit" loading={loading} className={authStyles.fullButton}>
+              {loading ? "Creating account…" : `Continue as ${role}`}
+            </Button>
+          </form>
+
+          <p className={authStyles.accountLink}>
+            Already have an account? <Link href={`/login?role=${role}`}>Log in</Link>
+          </p>
+        </section>
+      </div>
     </main>
   );
 }
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<main style={page}>Loading...</main>}>
+    <Suspense fallback={<main className={authStyles.page}>Loading…</main>}>
       <SignupContent />
     </Suspense>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background:
-    "radial-gradient(circle at 50% 20%, rgba(37,99,235,0.22), transparent 32%), #000",
-  color: "white",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const card = {
-  width: "100%",
-  maxWidth: "440px",
-  padding: "42px",
-  borderRadius: "32px",
-  background: "rgba(255,255,255,0.06)",
-};
-
-const brand = {
-  color: "white",
-  textDecoration: "none",
-  fontSize: "22px",
-  fontWeight: 700,
-};
-
-const title = {
-  fontSize: "44px",
-  margin: "20px 0",
-};
-
-const subtitle = {
-  color: "#aaa",
-  marginBottom: "20px",
-};
-
-const form = {
-  display: "grid",
-  gap: "14px",
-};
-
-const input = {
-  padding: "16px",
-  borderRadius: "16px",
-  border: "none",
-  background: "#1a1a1a",
-  color: "white",
-};
-
-const button = {
-  padding: "16px",
-  borderRadius: "999px",
-  border: "none",
-  background: "white",
-  color: "black",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const bottomText = {
-  marginTop: "20px",
-};
-
-const link = {
-  color: "white",
-};

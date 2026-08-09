@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "TaskForge",
+export const metadata: Metadata = {
+  title: "Indom",
   description: "Real work experience for students. Fast execution for organizations.",
 };
 

@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import styles from "@/components/product/Product.module.css";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { EmptyState, LoadingState } from "@/components/ui/EmptyState";
 import { supabase } from "@/lib/supabase";
 
 type Task = {
@@ -11,77 +16,70 @@ type Task = {
   description: string;
   skills: string | null;
   duration: string | null;
-  profiles:
-    | { full_name: string | null }
-    | { full_name: string | null }[]
-    | null;
+  profiles: { full_name: string | null } | { full_name: string | null }[] | null;
 };
+
+function related<T>(value: T | T[] | null) {
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
 
 export default function StudentProjectsPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [appliedTaskIds, setAppliedTaskIds] = useState<string[]>([]);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    fetchTasks();
-    fetchApplications();
-  }, []);
-
-  const fetchTasks = async () => {
+  const loadProjects = useCallback(async () => {
     setLoading(true);
+    setError("");
 
-    const { data, error } = await supabase
+    const tasksResult = await supabase
       .from("tasks")
-      .select(`
-        id,
-        organization_id,
-        title,
-        description,
-        skills,
-        duration,
-        profiles:organization_id (
-          full_name
-        )
-      `)
+      .select("id, organization_id, title, description, skills, duration, profiles:organization_id(full_name)")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      alert(error.message);
-      setLoading(false);
-      return;
+    const { data: authData } = await supabase.auth.getUser();
+    let applicationIds: string[] = [];
+
+    if (authData.user) {
+      const applicationResult = await supabase
+        .from("applications")
+        .select("task_id")
+        .eq("student_id", authData.user.id);
+
+      if (!applicationResult.error) {
+        applicationIds = (applicationResult.data || []).map((application) => application.task_id);
+      }
     }
 
-    setTasks(data || []);
+    if (tasksResult.error) {
+      setError("We couldn’t load projects. Please try again.");
+    } else {
+      setTasks((tasksResult.data as unknown as Task[] | null) ?? []);
+    }
+
+    setAppliedTaskIds(applicationIds);
     setLoading(false);
-  };
+  }, []);
 
-  const fetchApplications = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("applications")
-      .select("task_id")
-      .eq("student_id", user.id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setAppliedTaskIds(data.map((application) => application.task_id));
-  };
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadProjects(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadProjects]);
 
   const handleApply = async (taskId: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    setError("");
+    setSuccess("");
+    setApplyingId(taskId);
+
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("You must be logged in to apply.");
+      setError("You must be logged in to apply.");
+      setApplyingId(null);
       return;
     }
 
@@ -92,21 +90,24 @@ export default function StudentProjectsPage() {
       .single();
 
     if (profileError) {
-      alert(profileError.message);
+      setError("We couldn’t verify your student profile.");
+      setApplyingId(null);
       return;
     }
 
     if (profile?.role !== "student") {
-      alert("Only students can apply to projects.");
+      setError("Only student accounts can apply to projects.");
+      setApplyingId(null);
       return;
     }
 
     if (appliedTaskIds.includes(taskId)) {
-      alert("You already applied to this project.");
+      setError("You already applied to this project.");
+      setApplyingId(null);
       return;
     }
 
-    const { error } = await supabase.from("applications").insert([
+    const { error: applicationError } = await supabase.from("applications").insert([
       {
         task_id: taskId,
         student_id: user.id,
@@ -115,235 +116,71 @@ export default function StudentProjectsPage() {
       },
     ]);
 
-    if (error) {
-      alert(error.message);
+    if (applicationError) {
+      setError("We couldn’t submit your application. Please try again.");
+      setApplyingId(null);
       return;
     }
 
-    setAppliedTaskIds([...appliedTaskIds, taskId]);
+    setAppliedTaskIds((current) => [...current, taskId]);
+    setSuccess("Application submitted successfully.");
+    setApplyingId(null);
   };
 
   return (
-    <main style={page}>
-      <aside style={sidebar}>
-        <Link href="/" style={brand}>TaskForge</Link>
+    <div className={styles.page}>
+      <PageHeader
+        eyebrow="Project marketplace"
+        title="Discover projects"
+        description="Find real-world opportunities where your skills and interests can contribute."
+        action={<Badge tone="info">{tasks.length} {tasks.length === 1 ? "project" : "projects"}</Badge>}
+      />
 
-        <nav style={nav}>
-          <Link href="/student" style={navItem}>Overview</Link>
-          <Link href="/student/projects" style={activeNav}>Browse Projects</Link>
-          <Link href="/student/applications" style={navItem}>My Applications</Link>
-          <Link href="/student/profile" style={navItem}>Profile</Link>
-        </nav>
-      </aside>
+      {error && <p className={`${styles.notice} ${styles.noticeError}`} role="alert">{error}</p>}
+      {success && <p className={`${styles.notice} ${styles.noticeSuccess}`} role="status">{success}</p>}
 
-      <section style={content}>
-        <header style={header}>
-          <div>
-            <p style={eyebrow}>PROJECT MARKETPLACE</p>
-            <h1 style={title}>Browse Projects</h1>
-            <p style={subtitle}>Discover real-world projects and gain experience.</p>
-          </div>
+      {loading ? (
+        <LoadingState label="Loading projects" />
+      ) : tasks.length === 0 ? (
+        <EmptyState title="No projects available right now" description="Check back soon for new opportunities." />
+      ) : (
+        <section className={styles.cardsGrid} aria-label="Available projects">
+          {tasks.map((task) => {
+            const hasApplied = appliedTaskIds.includes(task.id);
+            const organization = related(task.profiles);
+            const skills = (task.skills || "")
+              .split(/[,;]/)
+              .map((skill) => skill.trim())
+              .filter(Boolean)
+              .slice(0, 4);
 
-          <div style={countPill}>{tasks.length} projects</div>
-        </header>
-
-        {loading ? (
-          <div style={emptyState}>Loading projects...</div>
-        ) : tasks.length === 0 ? (
-          <div style={emptyState}>No projects available yet.</div>
-        ) : (
-          <section style={grid}>
-            {tasks.map((task) => {
-              const hasApplied = appliedTaskIds.includes(task.id);
-              const organization = Array.isArray(task.profiles)
-                ? task.profiles[0]
-                : task.profiles;
-
-              return (
-                <div key={task.id} style={card}>
-                  <div>
-                    <Link href={`/organization/${task.organization_id}`} style={orgLink}>
-                      Posted by {organization?.full_name || "Unknown organization"}
-                    </Link>
-
-                    <h2 style={cardTitle}>{task.title}</h2>
-                    <p style={description}>{task.description}</p>
-                  </div>
-
-                  <div style={footer}>
-                    <div style={meta}>
-                      <span style={chip}>{task.skills || "No skills"}</span>
-                      <span style={chip}>{task.duration || "Flexible"}</span>
-                    </div>
-
-                    <button
-                      style={hasApplied ? appliedButton : button}
-                      onClick={() => handleApply(task.id)}
-                      disabled={hasApplied}
-                    >
-                      {hasApplied ? "Applied" : "Apply"}
-                    </button>
+            return (
+              <article key={task.id} className={styles.projectCard}>
+                <div>
+                  <Link href={`/organization/${task.organization_id}`} className={styles.organizationLink}>
+                    {organization?.full_name || "Organization"}
+                  </Link>
+                  <h2>{task.title}</h2>
+                  <p className={styles.description}>{task.description}</p>
+                  <div className={styles.chips}>
+                    {skills.length > 0 ? skills.map((skill) => <span key={skill} className={styles.chip}>{skill}</span>) : <span className={styles.chip}>Skills flexible</span>}
+                    <span className={styles.chip}>{task.duration || "Flexible duration"}</span>
                   </div>
                 </div>
-              );
-            })}
-          </section>
-        )}
-      </section>
-    </main>
+                <Button
+                  className={styles.fullButton}
+                  variant={hasApplied ? "secondary" : "primary"}
+                  onClick={() => handleApply(task.id)}
+                  disabled={hasApplied}
+                  loading={applyingId === task.id}
+                >
+                  {hasApplied ? "Applied" : applyingId === task.id ? "Submitting…" : "Apply to project"}
+                </Button>
+              </article>
+            );
+          })}
+        </section>
+      )}
+    </div>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background: "#050505",
-  color: "white",
-  display: "grid",
-  gridTemplateColumns: "260px 1fr",
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const sidebar = {
-  borderRight: "1px solid rgba(255,255,255,0.08)",
-  padding: "28px",
-  background: "#080808",
-};
-
-const brand = {
-  color: "white",
-  textDecoration: "none",
-  fontSize: "22px",
-  fontWeight: 700,
-  marginBottom: "40px",
-  display: "block",
-};
-
-const nav = { display: "grid", gap: "10px" };
-
-const navItem = {
-  color: "#8f8f8f",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-};
-
-const activeNav = {
-  color: "white",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
-};
-
-const content = { padding: "48px", maxWidth: "1200px" };
-
-const header = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  marginBottom: "28px",
-};
-
-const eyebrow = {
-  color: "#a1a1aa",
-  fontSize: "12px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-};
-
-const title = {
-  fontSize: "38px",
-  margin: "6px 0",
-  letterSpacing: "-0.04em",
-};
-
-const subtitle = { color: "#8f8f8f", fontSize: "16px" };
-
-const countPill = {
-  padding: "8px 12px",
-  borderRadius: "999px",
-  background: "#111",
-  border: "1px solid rgba(255,255,255,0.08)",
-  color: "#d4d4d8",
-  fontSize: "13px",
-  fontWeight: 700,
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-  gap: "18px",
-};
-
-const card = {
-  display: "flex",
-  flexDirection: "column" as const,
-  justifyContent: "space-between",
-  minHeight: "240px",
-  padding: "22px",
-  borderRadius: "18px",
-  background: "#0d0d0d",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const orgLink = {
-  display: "inline-block",
-  color: "#a1a1aa",
-  fontSize: "13px",
-  fontWeight: 700,
-  marginBottom: "10px",
-  textDecoration: "none",
-};
-
-const cardTitle = { fontSize: "20px", marginBottom: "10px" };
-
-const description = {
-  color: "#9ca3af",
-  lineHeight: "1.6",
-  fontSize: "14px",
-};
-
-const footer = { marginTop: "22px" };
-
-const meta = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap" as const,
-  marginBottom: "18px",
-};
-
-const chip = {
-  padding: "6px 10px",
-  borderRadius: "999px",
-  background: "#141414",
-  border: "1px solid rgba(255,255,255,0.06)",
-  color: "#a1a1aa",
-  fontSize: "12px",
-  fontWeight: 600,
-};
-
-const button = {
-  width: "100%",
-  padding: "12px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "#141414",
-  color: "white",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const appliedButton = {
-  ...button,
-  background: "#0f0f0f",
-  color: "#666",
-  cursor: "not-allowed",
-};
-
-const emptyState = {
-  padding: "28px",
-  borderRadius: "18px",
-  background: "#0d0d0d",
-  border: "1px solid rgba(255,255,255,0.08)",
-  color: "#8f8f8f",
-};

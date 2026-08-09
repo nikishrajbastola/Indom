@@ -1,237 +1,134 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import styles from "@/components/product/Product.module.css";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { ButtonLink } from "@/components/ui/Button";
+import { EmptyState, LoadingState } from "@/components/ui/EmptyState";
 import { supabase } from "@/lib/supabase";
 
+type Organization = { full_name: string | null };
+type ApplicationTask = {
+  title: string;
+  description: string;
+  profiles: Organization | Organization[] | null;
+};
 type Application = {
   id: string;
   status: string | null;
   message: string | null;
-  tasks:
-    | {
-        title: string;
-        description: string;
-      }
-    | {
-        title: string;
-        description: string;
-      }[]
-    | null;
+  created_at: string | null;
+  tasks: ApplicationTask | ApplicationTask[] | null;
 };
+
+function related<T>(value: T | T[] | null) {
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+function statusLabel(status: string | null) {
+  const labels: Record<string, string> = {
+    pending: "Applied",
+    under_review: "Under review",
+    interviewing: "Interviewing",
+    accepted: "Accepted",
+    rejected: "Not selected",
+    completed: "Completed",
+  };
+  return labels[status || "pending"] || status || "Applied";
+}
+
+function statusTone(status: string | null): BadgeTone {
+  if (status === "accepted" || status === "completed") return "success";
+  if (status === "rejected") return "danger";
+  if (status === "under_review" || status === "interviewing") return "warning";
+  return "info";
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "Recently";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Recently";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date);
+}
 
 export default function StudentApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchApplications();
-  }, []);
+  const loadApplications = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
-  const fetchApplications = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("applications")
-      .select(`
-        id,
-        status,
-        message,
-        tasks (
-          title,
-          description
-        )
-      `)
-      .eq("student_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      alert(error.message);
+    if (!user) {
+      setError("Please log in to view your applications.");
+      setLoading(false);
       return;
     }
 
-    setApplications(data || []);
-  };
+    const { data, error: queryError } = await supabase
+      .from("applications")
+      .select("id, status, message, created_at, tasks(title, description, profiles:organization_id(full_name))")
+      .eq("student_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (queryError) {
+      setError("We couldn’t load your applications. Please try again.");
+    } else {
+      setApplications((data as unknown as Application[] | null) ?? []);
+    }
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadApplications(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadApplications]);
 
   return (
-    <main style={page}>
-      <aside style={sidebar}>
-        <h2 style={brand}>TaskForge</h2>
+    <div className={`${styles.page} ${styles.pageMedium}`}>
+      <PageHeader
+        eyebrow="Application tracking"
+        title="Your applications"
+        description="Follow each opportunity from submission through the organization’s decision."
+      />
 
-        <nav style={nav}>
-          <Link href="/student" style={navItem}>Overview</Link>
-          <Link href="/student/projects" style={navItem}>Browse Projects</Link>
-          <Link href="/student/applications" style={activeNav}>My Applications</Link>
-          <Link href="/student/profile" style={navItem}>Profile</Link>
-        </nav>
-      </aside>
+      {error && <p className={`${styles.notice} ${styles.noticeError}`} role="alert">{error}</p>}
 
-      <section style={content}>
-        <p style={eyebrow}>APPLICATION TRACKING</p>
-        <h1 style={title}>My Applications</h1>
-        <p style={subtitle}>
-          Track the projects you applied to and monitor your application status.
-        </p>
+      {loading ? (
+        <LoadingState label="Loading applications" />
+      ) : applications.length === 0 ? (
+        <EmptyState
+          title="No applications yet"
+          description="Find a project that matches your interests and start building experience."
+          action={<ButtonLink href="/student/projects">Browse projects</ButtonLink>}
+        />
+      ) : (
+        <section className={styles.applicationList} aria-label="Submitted applications">
+          {applications.map((application) => {
+            const task = related(application.tasks);
+            const organization = related(task?.profiles || null);
 
-        {applications.length === 0 ? (
-          <div style={emptyCard}>
-            <h2 style={cardTitle}>No applications yet</h2>
-            <p style={description}>
-              Browse projects and apply to start building real-world experience.
-            </p>
-
-            <Link href="/student/projects" style={buttonLink}>
-              Browse Projects
-            </Link>
-          </div>
-        ) : (
-          <section style={list}>
-            {applications.map((application) => {
-              const task = Array.isArray(application.tasks)
-                ? application.tasks[0]
-                : application.tasks;
-
-              return (
-                <div key={application.id} style={card}>
-                  <div>
-                    <h2 style={cardTitle}>
-                      {task?.title || "Untitled project"}
-                    </h2>
-
-                    <p style={description}>
-                      {task?.description || "No description available."}
-                    </p>
+            return (
+              <article key={application.id} className={styles.applicationCard}>
+                <div>
+                  <h2>{task?.title || "Untitled project"}</h2>
+                  <p className={styles.description}>{task?.description || "No project description is available."}</p>
+                  <div className={styles.applicationMeta}>
+                    <span>{organization?.full_name || "Organization"}</span>
+                    <time dateTime={application.created_at || undefined}>{formatDate(application.created_at)}</time>
                   </div>
-
-                  <span style={statusBadge}>
-                    {application.status || "pending"}
-                  </span>
                 </div>
-              );
-            })}
-          </section>
-        )}
-      </section>
-    </main>
+                <Badge tone={statusTone(application.status)}>{statusLabel(application.status)}</Badge>
+              </article>
+            );
+          })}
+        </section>
+      )}
+    </div>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background: "#050505",
-  color: "white",
-  display: "grid",
-  gridTemplateColumns: "260px 1fr",
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const sidebar = {
-  borderRight: "1px solid rgba(255,255,255,0.08)",
-  padding: "28px",
-  background: "#080808",
-};
-
-const brand = {
-  fontSize: "22px",
-  marginBottom: "40px",
-};
-
-const nav = {
-  display: "grid",
-  gap: "10px",
-};
-
-const navItem = {
-  color: "#aaa",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-};
-
-const activeNav = {
-  color: "white",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
-};
-
-const content = {
-  padding: "48px",
-};
-
-const eyebrow = {
-  color: "#60a5fa",
-  fontSize: "13px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-};
-
-const title = {
-  fontSize: "52px",
-  margin: "8px 0",
-  letterSpacing: "-0.05em",
-};
-
-const subtitle = {
-  color: "#aaa",
-  fontSize: "18px",
-  marginBottom: "32px",
-};
-
-const list = {
-  display: "grid",
-  gap: "16px",
-};
-
-const card = {
-  padding: "24px",
-  borderRadius: "24px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "20px",
-};
-
-const emptyCard = {
-  maxWidth: "620px",
-  padding: "28px",
-  borderRadius: "24px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-};
-
-const cardTitle = {
-  fontSize: "24px",
-  marginBottom: "10px",
-};
-
-const description = {
-  color: "#b5b5b5",
-  lineHeight: "1.6",
-};
-
-const statusBadge = {
-  height: "fit-content",
-  padding: "8px 12px",
-  borderRadius: "999px",
-  background: "rgba(96,165,250,0.14)",
-  color: "#60a5fa",
-  fontWeight: 700,
-  fontSize: "13px",
-};
-
-const buttonLink = {
-  display: "inline-block",
-  marginTop: "20px",
-  background: "white",
-  color: "black",
-  padding: "14px 20px",
-  borderRadius: "999px",
-  textDecoration: "none",
-  fontWeight: 700,
-};

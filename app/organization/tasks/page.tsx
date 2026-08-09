@@ -1,7 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import styles from "@/components/product/Product.module.css";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { EmptyState, LoadingState } from "@/components/ui/EmptyState";
+import formStyles from "@/components/ui/FormControls.module.css";
 import { supabase } from "@/lib/supabase";
 
 type Task = {
@@ -17,57 +22,66 @@ export default function OrganizationTasksPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const loadTasks = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("Not logged in");
+      setError("Please log in to manage your projects.");
+      setLoading(false);
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error: queryError } = await supabase
       .from("tasks")
       .select("id, title, description, skills, duration")
       .eq("organization_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      alert(error.message);
-      return;
+    if (queryError) {
+      setError("We couldn’t load your projects. Please try again.");
+    } else {
+      setTasks(data || []);
     }
 
-    setTasks(data || []);
-  };
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadTasks(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadTasks]);
 
   const handleDelete = async (taskId: string) => {
-    const confirmed = confirm("Delete this task?");
-
+    const confirmed = window.confirm("Delete this project? This action cannot be undone.");
     if (!confirmed) return;
 
-    const { error } = await supabase
-      .from("tasks")
-      .delete()
-      .eq("id", taskId);
+    setError("");
+    setSuccess("");
+    const { error: deleteError } = await supabase.from("tasks").delete().eq("id", taskId);
 
-    if (error) {
-      alert(error.message);
+    if (deleteError) {
+      setError("We couldn’t delete this project.");
       return;
     }
 
-    setTasks(tasks.filter((task) => task.id !== taskId));
+    setTasks((current) => current.filter((task) => task.id !== taskId));
+    setSuccess("Project deleted.");
   };
 
   const startEditing = (task: Task) => {
     setEditingTaskId(task.id);
     setEditedTitle(task.title);
     setEditedDescription(task.description);
+    setError("");
+    setSuccess("");
   };
 
   const cancelEditing = () => {
@@ -77,315 +91,88 @@ export default function OrganizationTasksPage() {
   };
 
   const saveTask = async (taskId: string) => {
-    const { error } = await supabase
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    const { error: updateError } = await supabase
       .from("tasks")
-      .update({
-        title: editedTitle,
-        description: editedDescription,
-      })
+      .update({ title: editedTitle, description: editedDescription })
       .eq("id", taskId);
 
-    if (error) {
-      alert(error.message);
+    if (updateError) {
+      setError("We couldn’t save your changes.");
+      setSaving(false);
       return;
     }
 
-    setTasks(
-      tasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              title: editedTitle,
-              description: editedDescription,
-            }
-          : task
-      )
-    );
-
+    setTasks((current) => current.map((task) => task.id === taskId ? { ...task, title: editedTitle, description: editedDescription } : task));
     cancelEditing();
+    setSuccess("Project updated successfully.");
+    setSaving(false);
   };
 
   return (
-    <main style={page}>
-      <aside style={sidebar}>
-        <Link href="/" style={brand}>
-          TaskForge
-        </Link>
+    <AppShell workspace="organization">
+      <div className={styles.page}>
+        <PageHeader
+          eyebrow="Project management"
+          title="Your projects"
+          description="Review and update the opportunities your organization has posted."
+          action={<ButtonLink href="/organization/post-task">Post project →</ButtonLink>}
+        />
 
-        <nav style={nav}>
-          <Link href="/organization" style={navItem}>
-            Overview
-          </Link>
+        {error && <p className={`${styles.notice} ${styles.noticeError}`} role="alert">{error}</p>}
+        {success && <p className={`${styles.notice} ${styles.noticeSuccess}`} role="status">{success}</p>}
 
-          <Link href="/organization/tasks" style={activeNav}>
-            My Tasks
-          </Link>
-
-          <Link href="/organization/applicants" style={navItem}>
-            Applicants
-          </Link>
-
-          <Link href="/organization/post-task" style={navItem}>
-            Post Task
-          </Link>
-        </nav>
-      </aside>
-
-      <section style={content}>
-        <p style={eyebrow}>POSTED PROJECTS</p>
-
-        <h1 style={title}>My Tasks</h1>
-
-        <p style={subtitle}>
-          Manage projects your organization has posted.
-        </p>
-
-        <div style={grid}>
-          {tasks.map((task) => (
-            <div key={task.id} style={card}>
-              {editingTaskId === task.id ? (
-                <>
-                  <input
-                    style={input}
-                    value={editedTitle}
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                  />
-
-                  <textarea
-                    style={textarea}
-                    value={editedDescription}
-                    onChange={(e) => setEditedDescription(e.target.value)}
-                  />
-
-                  <div style={buttonRow}>
-                    <button
-                      style={saveButton}
-                      onClick={() => saveTask(task.id)}
-                    >
-                      Save
-                    </button>
-
-                    <button
-                      style={cancelButton}
-                      onClick={cancelEditing}
-                    >
-                      Cancel
-                    </button>
+        {loading ? (
+          <LoadingState label="Loading projects" />
+        ) : tasks.length === 0 ? (
+          <EmptyState
+            title="No projects posted yet"
+            description="Create a focused opportunity to start receiving student applications."
+            action={<ButtonLink href="/organization/post-task">Post a project</ButtonLink>}
+          />
+        ) : (
+          <section className={styles.cardsGrid} aria-label="Posted projects">
+            {tasks.map((task) => (
+              <article key={task.id} className={styles.projectCard}>
+                {editingTaskId === task.id ? (
+                  <div className={formStyles.form}>
+                    <div className={formStyles.field}>
+                      <label className={formStyles.label} htmlFor={`title-${task.id}`}>Project title</label>
+                      <input id={`title-${task.id}`} className={formStyles.input} value={editedTitle} onChange={(event) => setEditedTitle(event.target.value)} />
+                    </div>
+                    <div className={formStyles.field}>
+                      <label className={formStyles.label} htmlFor={`description-${task.id}`}>Description</label>
+                      <textarea id={`description-${task.id}`} className={formStyles.textarea} value={editedDescription} onChange={(event) => setEditedDescription(event.target.value)} />
+                    </div>
+                    <div className={styles.cardActions}>
+                      <Button variant="secondary" size="small" onClick={cancelEditing}>Cancel</Button>
+                      <Button size="small" onClick={() => saveTask(task.id)} loading={saving}>{saving ? "Saving…" : "Save changes"}</Button>
+                    </div>
                   </div>
-                </>
-              ) : (
-                <>
-                  <h2 style={cardTitle}>{task.title}</h2>
-
-                  <p style={description}>{task.description}</p>
-
-                  <div style={meta}>
-                    <span style={chip}>
-                      {task.skills || "Skills not listed"}
-                    </span>
-
-                    <span style={chip}>
-                      {task.duration || "Duration not listed"}
-                    </span>
-                  </div>
-
-                  <div style={buttonRow}>
-                    <button
-                      style={editButton}
-                      onClick={() => startEditing(task)}
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      style={deleteButton}
-                      onClick={() => handleDelete(task.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-    </main>
+                ) : (
+                  <>
+                    <div>
+                      <p className={styles.cardEyebrow}>Posted project</p>
+                      <h2>{task.title}</h2>
+                      <p className={styles.description}>{task.description}</p>
+                      <div className={styles.chips}>
+                        <span className={styles.chip}>{task.skills || "Skills not listed"}</span>
+                        <span className={styles.chip}>{task.duration || "Duration not listed"}</span>
+                      </div>
+                    </div>
+                    <div className={styles.cardActions}>
+                      <Button variant="secondary" size="small" onClick={() => startEditing(task)}>Edit project</Button>
+                      <Button variant="danger" size="small" onClick={() => handleDelete(task.id)}>Delete</Button>
+                    </div>
+                  </>
+                )}
+              </article>
+            ))}
+          </section>
+        )}
+      </div>
+    </AppShell>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background: "#050505",
-  color: "white",
-  display: "grid",
-  gridTemplateColumns: "260px 1fr",
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const sidebar = {
-  borderRight: "1px solid rgba(255,255,255,0.08)",
-  padding: "28px",
-  background: "#080808",
-};
-
-const brand = {
-  color: "white",
-  textDecoration: "none",
-  fontSize: "22px",
-  fontWeight: 700,
-  marginBottom: "40px",
-  display: "block",
-};
-
-const nav = {
-  display: "grid",
-  gap: "10px",
-};
-
-const navItem = {
-  color: "#aaa",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-};
-
-const activeNav = {
-  color: "white",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
-};
-
-const content = {
-  padding: "56px",
-};
-
-const eyebrow = {
-  color: "#c084fc",
-  fontSize: "13px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-};
-
-const title = {
-  fontSize: "52px",
-  margin: "8px 0",
-  letterSpacing: "-0.05em",
-};
-
-const subtitle = {
-  color: "#aaa",
-  fontSize: "18px",
-  marginBottom: "32px",
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-  gap: "20px",
-};
-
-const card = {
-  padding: "24px",
-  borderRadius: "24px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-};
-
-const cardTitle = {
-  fontSize: "24px",
-  marginBottom: "12px",
-};
-
-const description = {
-  color: "#b5b5b5",
-  lineHeight: "1.6",
-};
-
-const meta = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap" as const,
-  marginTop: "18px",
-  marginBottom: "22px",
-};
-
-const chip = {
-  padding: "8px 12px",
-  borderRadius: "999px",
-  background: "rgba(255,255,255,0.08)",
-  color: "#d4d4d8",
-  fontSize: "13px",
-};
-
-const buttonRow = {
-  display: "flex",
-  gap: "12px",
-};
-
-const editButton = {
-  flex: 1,
-  padding: "12px",
-  borderRadius: "14px",
-  border: "none",
-  background: "#ffffff",
-  color: "#000",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const deleteButton = {
-  flex: 1,
-  padding: "12px",
-  borderRadius: "14px",
-  border: "none",
-  background: "#dc2626",
-  color: "white",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const saveButton = {
-  flex: 1,
-  padding: "12px",
-  borderRadius: "14px",
-  border: "none",
-  background: "#22c55e",
-  color: "white",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const cancelButton = {
-  flex: 1,
-  padding: "12px",
-  borderRadius: "14px",
-  border: "none",
-  background: "#27272a",
-  color: "white",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const input = {
-  width: "100%",
-  padding: "14px",
-  borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "#111",
-  color: "white",
-  marginBottom: "14px",
-};
-
-const textarea = {
-  width: "100%",
-  minHeight: "120px",
-  padding: "14px",
-  borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "#111",
-  color: "white",
-  marginBottom: "18px",
-};

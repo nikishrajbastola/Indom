@@ -1,7 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import styles from "@/components/product/Product.module.css";
+import { Button } from "@/components/ui/Button";
+import { LoadingState } from "@/components/ui/EmptyState";
+import formStyles from "@/components/ui/FormControls.module.css";
 import { supabase } from "@/lib/supabase";
 
 export default function OrganizationProfilePage() {
@@ -10,345 +15,132 @@ export default function OrganizationProfilePage() {
   const [industry, setIndustry] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
+  const loadProfile = useCallback(async () => {
     setLoading(true);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    setError("");
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("Not logged in");
+      setError("Please log in to manage your organization profile.");
       setLoading(false);
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error: queryError } = await supabase
       .from("profiles")
       .select("full_name, website_url, industry, organization_description")
       .eq("id", user.id)
       .single();
 
-    if (error) {
-      alert(error.message);
-      setLoading(false);
-      return;
+    if (queryError) {
+      setError("We couldn’t load your organization profile.");
+    } else {
+      setOrganizationName(data?.full_name || "");
+      setWebsiteUrl(data?.website_url || "");
+      setIndustry(data?.industry || "");
+      setDescription(data?.organization_description || "");
     }
 
-    setOrganizationName(data?.full_name || "");
-    setWebsiteUrl(data?.website_url || "");
-    setIndustry(data?.industry || "");
-    setDescription(data?.organization_description || "");
     setLoading(false);
-  };
+  }, []);
 
-  const saveProfile = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadProfile(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadProfile]);
+
+  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    setSaving(true);
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("Not logged in");
+      setError("Please log in before saving your profile.");
+      setSaving(false);
       return;
     }
 
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from("profiles")
-      .update({
-        full_name: organizationName,
-        website_url: websiteUrl,
-        industry,
-        organization_description: description,
-      })
+      .update({ full_name: organizationName, website_url: websiteUrl, industry, organization_description: description })
       .eq("id", user.id);
 
-    if (error) {
-      alert(error.message);
-      return;
+    if (updateError) {
+      setError("We couldn’t save your organization profile.");
+    } else {
+      setSuccess("Organization profile updated successfully.");
     }
 
-    alert("Organization profile updated!");
+    setSaving(false);
   };
 
   return (
-    <main style={page}>
-      <aside style={sidebar}>
-        <Link href="/" style={brand}>
-          TaskForge
-        </Link>
+    <AppShell workspace="organization">
+      <div className={`${styles.page} ${styles.pageMedium}`}>
+        <PageHeader
+          eyebrow="Organization profile"
+          title="Company identity"
+          description="Give students clear context about who is posting projects and the work your organization does."
+        />
 
-        <nav style={nav}>
-          <Link href="/organization" style={navItem}>
-            Overview
-          </Link>
-          <Link href="/organization/tasks" style={navItem}>
-            My Tasks
-          </Link>
-          <Link href="/organization/applicants" style={navItem}>
-            Applicants
-          </Link>
-          <Link href="/organization/post-task" style={navItem}>
-            Post Task
-          </Link>
-          <Link href="/organization/profile" style={activeNav}>
-            Profile
-          </Link>
-        </nav>
-      </aside>
-
-      <section style={content}>
-        <header style={header}>
-          <div>
-            <p style={eyebrow}>ORGANIZATION PROFILE</p>
-            <h1 style={title}>Company identity</h1>
-            <p style={subtitle}>
-              Help students understand who is posting projects.
-            </p>
-          </div>
-        </header>
+        {error && <p className={`${styles.notice} ${styles.noticeError}`} role="alert">{error}</p>}
+        {success && <p className={`${styles.notice} ${styles.noticeSuccess}`} role="status">{success}</p>}
 
         {loading ? (
-          <div style={emptyState}>Loading profile...</div>
+          <LoadingState label="Loading organization profile" />
         ) : (
-          <section style={panel}>
-            <div style={previewCard}>
-              <p style={previewLabel}>Preview</p>
-              <h2 style={companyName}>
-                {organizationName || "Organization name"}
-              </h2>
-              <p style={companyIndustry}>
-                {industry || "Industry / focus area"}
-              </p>
-              <p style={companyDescription}>
-                {description ||
-                  "Write a short description so students know what your organization does."}
-              </p>
+          <div className={styles.splitGrid}>
+            <section className={styles.previewPanel} aria-labelledby="organization-preview-title">
+              <p className={styles.sectionEyebrow}>Public profile preview</p>
+              <div className={styles.profileHero}>
+                <div className={styles.avatar} aria-hidden="true">{organizationName.charAt(0).toUpperCase() || "O"}</div>
+                <div>
+                  <h2 id="organization-preview-title">{organizationName || "Organization name"}</h2>
+                  <p>{industry || "Industry or focus area"}</p>
+                </div>
+              </div>
+              <p className={styles.profileBody}>{description || "Add a short description so students understand what your organization does."}</p>
+              {websiteUrl && <div className={styles.profileLinks}><a href={websiteUrl} target="_blank" rel="noreferrer">Visit website →</a></div>}
+            </section>
 
-              {websiteUrl && (
-                <a href={websiteUrl} target="_blank" style={websiteLink}>
-                  Visit website
-                </a>
-              )}
-            </div>
-
-            <div style={formCard}>
-              <label style={label}>Organization name</label>
-              <input
-                style={input}
-                placeholder="Example: Texas State AI Club"
-                value={organizationName}
-                onChange={(e) => setOrganizationName(e.target.value)}
-              />
-
-              <label style={label}>Website</label>
-              <input
-                style={input}
-                placeholder="https://example.com"
-                value={websiteUrl}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
-              />
-
-              <label style={label}>Industry / focus</label>
-              <input
-                style={input}
-                placeholder="Education, AI, nonprofit, startup..."
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-              />
-
-              <label style={label}>Description</label>
-              <textarea
-                style={textarea}
-                placeholder="Describe your organization and the kind of projects you post."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-
-              <button style={button} onClick={saveProfile}>
-                Save profile
-              </button>
-            </div>
-          </section>
+            <form className={styles.formPanel} onSubmit={saveProfile}>
+              <section className={styles.subsection} aria-labelledby="organization-details-title">
+                <h2 id="organization-details-title">Organization details</h2>
+                <p>Keep this information accurate and useful for students reviewing your opportunities.</p>
+                <div className={formStyles.form}>
+                  <div className={formStyles.field}>
+                    <label className={formStyles.label} htmlFor="organization-name">Organization name</label>
+                    <input id="organization-name" className={formStyles.input} required value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} />
+                  </div>
+                  <div className={formStyles.field}>
+                    <label className={formStyles.label} htmlFor="organization-website">Website</label>
+                    <input id="organization-website" className={formStyles.input} type="url" placeholder="https://example.com" value={websiteUrl} onChange={(event) => setWebsiteUrl(event.target.value)} />
+                  </div>
+                  <div className={formStyles.field}>
+                    <label className={formStyles.label} htmlFor="organization-industry">Industry or focus</label>
+                    <input id="organization-industry" className={formStyles.input} placeholder="Education, research, nonprofit, startup" value={industry} onChange={(event) => setIndustry(event.target.value)} />
+                  </div>
+                  <div className={formStyles.field}>
+                    <label className={formStyles.label} htmlFor="organization-description">Description</label>
+                    <textarea id="organization-description" className={formStyles.textarea} placeholder="Describe your organization and the kinds of projects you post." value={description} onChange={(event) => setDescription(event.target.value)} />
+                  </div>
+                </div>
+              </section>
+              <div className={formStyles.actions}>
+                <Button type="submit" loading={saving}>{saving ? "Saving…" : "Save profile"}</Button>
+              </div>
+            </form>
+          </div>
         )}
-      </section>
-    </main>
+      </div>
+    </AppShell>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background: "#050505",
-  color: "white",
-  display: "grid",
-  gridTemplateColumns: "260px 1fr",
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const sidebar = {
-  borderRight: "1px solid rgba(255,255,255,0.08)",
-  padding: "28px",
-  background: "#080808",
-};
-
-const brand = {
-  color: "white",
-  textDecoration: "none",
-  fontSize: "22px",
-  fontWeight: 700,
-  marginBottom: "40px",
-  display: "block",
-};
-
-const nav = {
-  display: "grid",
-  gap: "10px",
-};
-
-const navItem = {
-  color: "#8f8f8f",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-};
-
-const activeNav = {
-  color: "white",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
-};
-
-const content = {
-  padding: "48px",
-  maxWidth: "1200px",
-};
-
-const header = {
-  marginBottom: "28px",
-};
-
-const eyebrow = {
-  color: "#a1a1aa",
-  fontSize: "12px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-};
-
-const title = {
-  fontSize: "38px",
-  margin: "6px 0",
-  letterSpacing: "-0.04em",
-};
-
-const subtitle = {
-  color: "#8f8f8f",
-  fontSize: "16px",
-};
-
-const panel = {
-  display: "grid",
-  gridTemplateColumns: "0.9fr 1.1fr",
-  gap: "20px",
-};
-
-const previewCard = {
-  padding: "28px",
-  borderRadius: "18px",
-  background: "#0d0d0d",
-  border: "1px solid rgba(255,255,255,0.08)",
-  height: "fit-content",
-};
-
-const previewLabel = {
-  color: "#71717a",
-  fontSize: "12px",
-  fontWeight: 800,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase" as const,
-  marginBottom: "18px",
-};
-
-const companyName = {
-  fontSize: "28px",
-  marginBottom: "8px",
-};
-
-const companyIndustry = {
-  color: "#a1a1aa",
-  fontSize: "14px",
-  marginBottom: "18px",
-};
-
-const companyDescription = {
-  color: "#8f8f8f",
-  lineHeight: "1.7",
-  marginBottom: "20px",
-};
-
-const websiteLink = {
-  color: "#d4d4d8",
-  textDecoration: "none",
-  fontWeight: 700,
-  fontSize: "14px",
-};
-
-const formCard = {
-  padding: "28px",
-  borderRadius: "18px",
-  background: "#0d0d0d",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const label = {
-  display: "block",
-  color: "#d4d4d8",
-  fontSize: "13px",
-  fontWeight: 700,
-  marginBottom: "8px",
-};
-
-const input = {
-  width: "100%",
-  padding: "14px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "#111",
-  color: "white",
-  marginBottom: "18px",
-};
-
-const textarea = {
-  width: "100%",
-  minHeight: "150px",
-  padding: "14px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "#111",
-  color: "white",
-  marginBottom: "18px",
-};
-
-const button = {
-  width: "100%",
-  padding: "14px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "white",
-  color: "black",
-  fontWeight: 800,
-  cursor: "pointer",
-};
-
-const emptyState = {
-  padding: "28px",
-  borderRadius: "18px",
-  background: "#0d0d0d",
-  border: "1px solid rgba(255,255,255,0.08)",
-  color: "#8f8f8f",
-};

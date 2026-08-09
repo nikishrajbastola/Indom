@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import styles from "@/components/product/Product.module.css";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { EmptyState, LoadingState } from "@/components/ui/EmptyState";
 import { supabase } from "@/lib/supabase";
 
 type OrganizationProfile = {
@@ -21,367 +25,163 @@ type Task = {
 };
 
 export default function PublicOrganizationProfilePage() {
-  const params = useParams();
-  const organizationId = params.id as string;
-
+  const params = useParams<{ id: string }>();
+  const organizationId = params.id;
   const [profile, setProfile] = useState<OrganizationProfile | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [appliedTaskIds, setAppliedTaskIds] = useState<string[]>([]);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const loadOrganization = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    const [profileResult, taskResult, authResult] = await Promise.all([
+      supabase.from("profiles").select("full_name, website_url, industry, organization_description").eq("id", organizationId).single(),
+      supabase.from("tasks").select("id, title, description, skills, duration").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+      supabase.auth.getUser(),
+    ]);
+
+    if (profileResult.error || taskResult.error) {
+      setError("We couldn’t load this organization profile.");
+    } else {
+      setProfile(profileResult.data);
+      setTasks(taskResult.data || []);
+    }
+
+    if (authResult.data.user) {
+      const applicationResult = await supabase.from("applications").select("task_id").eq("student_id", authResult.data.user.id);
+      if (!applicationResult.error) {
+        setAppliedTaskIds((applicationResult.data || []).map((application) => application.task_id));
+      }
+    }
+
+    setLoading(false);
+  }, [organizationId]);
 
   useEffect(() => {
-    fetchOrganizationProfile();
-    fetchStudentApplications();
-  }, []);
-
-  const fetchOrganizationProfile = async () => {
-    setLoading(true);
-
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("full_name, website_url, industry, organization_description")
-      .eq("id", organizationId)
-      .single();
-
-    if (profileError) {
-      alert(profileError.message);
-      setLoading(false);
-      return;
-    }
-
-    const { data: tasksData, error: tasksError } = await supabase
-      .from("tasks")
-      .select("id, title, description, skills, duration")
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false });
-
-    if (tasksError) {
-      alert(tasksError.message);
-      setLoading(false);
-      return;
-    }
-
-    setProfile(profileData);
-    setTasks(tasksData || []);
-    setLoading(false);
-  };
-
-  const fetchStudentApplications = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("applications")
-      .select("task_id")
-      .eq("student_id", user.id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setAppliedTaskIds(data.map((application) => application.task_id));
-  };
+    const initialLoad = window.setTimeout(() => void loadOrganization(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadOrganization]);
 
   const handleApply = async (taskId: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    setApplyingId(taskId);
+    setError("");
+    setSuccess("");
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("You must be logged in to apply.");
+      setError("You must be logged in to apply.");
+      setApplyingId(null);
       return;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    const { data: accountProfile, error: profileError } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
     if (profileError) {
-      alert(profileError.message);
+      setError("We couldn’t verify your student profile.");
+      setApplyingId(null);
       return;
     }
 
-    if (profile?.role !== "student") {
-      alert("Only students can apply to projects.");
+    if (accountProfile?.role !== "student") {
+      setError("Only student accounts can apply to projects.");
+      setApplyingId(null);
       return;
     }
 
     if (appliedTaskIds.includes(taskId)) {
-      alert("You already applied to this project.");
+      setError("You already applied to this project.");
+      setApplyingId(null);
       return;
     }
 
-    const { error } = await supabase.from("applications").insert([
-      {
-        task_id: taskId,
-        student_id: user.id,
-        message: "I am interested in this project.",
-        status: "pending",
-      },
+    const { error: applicationError } = await supabase.from("applications").insert([
+      { task_id: taskId, student_id: user.id, message: "I am interested in this project.", status: "pending" },
     ]);
 
-    if (error) {
-      alert(error.message);
+    if (applicationError) {
+      setError("We couldn’t submit your application. Please try again.");
+      setApplyingId(null);
       return;
     }
 
-    setAppliedTaskIds([...appliedTaskIds, taskId]);
+    setAppliedTaskIds((current) => [...current, taskId]);
+    setSuccess("Application submitted successfully.");
+    setApplyingId(null);
   };
 
   return (
-    <main style={page}>
-      <nav style={topbar}>
-        <Link href="/student/projects" style={backLink}>
-          ← Back to projects
-        </Link>
+    <div className={styles.publicPage}>
+      <header className={styles.publicHeader}>
+        <Link href="/student/projects">← Back to projects</Link>
+        <Link href="/" className={styles.publicBrand} aria-label="Indom home"><span aria-hidden="true">I</span>Indom</Link>
+      </header>
 
-        <Link href="/" style={brand}>
-          TaskForge
-        </Link>
-      </nav>
+      <main className={`${styles.page} ${styles.pageMedium}`}>
+        {error && <p className={`${styles.notice} ${styles.noticeError}`} role="alert">{error}</p>}
+        {success && <p className={`${styles.notice} ${styles.noticeSuccess}`} role="status">{success}</p>}
 
-      {loading ? (
-        <section style={content}>
-          <div style={emptyState}>Loading organization...</div>
-        </section>
-      ) : (
-        <section style={content}>
-          <div style={hero}>
-            <p style={eyebrow}>ORGANIZATION PROFILE</p>
+        {loading ? (
+          <LoadingState label="Loading organization" />
+        ) : (
+          <>
+            <section className={styles.organizationHero} aria-labelledby="organization-title">
+              <p className={styles.sectionEyebrow}>Organization profile</p>
+              <h1 id="organization-title">{profile?.full_name || "Organization"}</h1>
+              <p className={styles.organizationMeta}>{profile?.industry || "Industry not listed"}</p>
+              <p>{profile?.organization_description || "This organization has not added a description yet."}</p>
+              {profile?.website_url && <a href={profile.website_url} target="_blank" rel="noreferrer">Visit website →</a>}
+            </section>
 
-            <h1 style={title}>{profile?.full_name || "Organization"}</h1>
-
-            <p style={industry}>{profile?.industry || "Industry not listed"}</p>
-
-            <p style={description}>
-              {profile?.organization_description ||
-                "This organization has not added a description yet."}
-            </p>
-
-            {profile?.website_url && (
-              <a href={profile.website_url} target="_blank" style={websiteLink}>
-                Visit website
-              </a>
-            )}
-          </div>
-
-          <section>
-            <div style={sectionHeader}>
-              <h2 style={sectionTitle}>Posted projects</h2>
-              <span style={countPill}>{tasks.length} projects</span>
-            </div>
-
-            {tasks.length === 0 ? (
-              <div style={emptyState}>
-                This organization has not posted projects yet.
+            <section aria-labelledby="organization-projects-title">
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Open opportunities</p>
+                  <h2 id="organization-projects-title">Posted projects</h2>
+                </div>
+                <Badge tone="info">{tasks.length} {tasks.length === 1 ? "project" : "projects"}</Badge>
               </div>
-            ) : (
-              <div style={grid}>
-                {tasks.map((task) => {
-                  const hasApplied = appliedTaskIds.includes(task.id);
 
-                  return (
-                    <div key={task.id} style={card}>
-                      <div>
-                        <h3 style={cardTitle}>{task.title}</h3>
-                        <p style={taskDescription}>{task.description}</p>
-
-                        <div style={meta}>
-                          <span style={chip}>{task.skills || "No skills"}</span>
-                          <span style={chip}>{task.duration || "Flexible"}</span>
+              {tasks.length === 0 ? (
+                <EmptyState title="No projects posted" description="This organization has not posted projects yet." />
+              ) : (
+                <div className={styles.cardsGrid}>
+                  {tasks.map((task) => {
+                    const hasApplied = appliedTaskIds.includes(task.id);
+                    return (
+                      <article key={task.id} className={styles.projectCard}>
+                        <div>
+                          <p className={styles.cardEyebrow}>{profile?.full_name || "Organization"}</p>
+                          <h2>{task.title}</h2>
+                          <p className={styles.description}>{task.description}</p>
+                          <div className={styles.chips}>
+                            <span className={styles.chip}>{task.skills || "Skills flexible"}</span>
+                            <span className={styles.chip}>{task.duration || "Flexible duration"}</span>
+                          </div>
                         </div>
-                      </div>
-
-                      <button
-                        style={hasApplied ? appliedButton : button}
-                        onClick={() => handleApply(task.id)}
-                        disabled={hasApplied}
-                      >
-                        {hasApplied ? "Applied" : "Apply"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </section>
-      )}
-    </main>
+                        <Button
+                          className={styles.fullButton}
+                          variant={hasApplied ? "secondary" : "primary"}
+                          disabled={hasApplied}
+                          loading={applyingId === task.id}
+                          onClick={() => handleApply(task.id)}
+                        >
+                          {hasApplied ? "Applied" : applyingId === task.id ? "Submitting…" : "Apply to project"}
+                        </Button>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+      </main>
+    </div>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background: "#050505",
-  color: "white",
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const topbar = {
-  height: "72px",
-  padding: "0 48px",
-  borderBottom: "1px solid rgba(255,255,255,0.08)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  background: "#080808",
-};
-
-const backLink = {
-  color: "#a1a1aa",
-  textDecoration: "none",
-  fontSize: "14px",
-};
-
-const brand = {
-  color: "white",
-  textDecoration: "none",
-  fontSize: "20px",
-  fontWeight: 700,
-};
-
-const content = {
-  padding: "56px",
-  maxWidth: "1100px",
-  margin: "0 auto",
-};
-
-const hero = {
-  padding: "36px",
-  borderRadius: "24px",
-  background: "#0d0d0d",
-  border: "1px solid rgba(255,255,255,0.08)",
-  marginBottom: "36px",
-};
-
-const eyebrow = {
-  color: "#a1a1aa",
-  fontSize: "12px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-};
-
-const title = {
-  fontSize: "48px",
-  margin: "10px 0",
-  letterSpacing: "-0.05em",
-};
-
-const industry = {
-  color: "#d4d4d8",
-  fontSize: "16px",
-  marginBottom: "18px",
-};
-
-const description = {
-  color: "#9ca3af",
-  lineHeight: "1.7",
-  maxWidth: "760px",
-  marginBottom: "22px",
-};
-
-const websiteLink = {
-  color: "#60a5fa",
-  textDecoration: "none",
-  fontWeight: 700,
-};
-
-const sectionHeader = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "18px",
-};
-
-const sectionTitle = {
-  fontSize: "26px",
-};
-
-const countPill = {
-  padding: "8px 12px",
-  borderRadius: "999px",
-  background: "#111",
-  border: "1px solid rgba(255,255,255,0.08)",
-  color: "#d4d4d8",
-  fontSize: "13px",
-  fontWeight: 700,
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-  gap: "18px",
-};
-
-const card = {
-  display: "flex",
-  flexDirection: "column" as const,
-  justifyContent: "space-between",
-  minHeight: "250px",
-  padding: "22px",
-  borderRadius: "18px",
-  background: "#0d0d0d",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const cardTitle = {
-  fontSize: "20px",
-  marginBottom: "10px",
-};
-
-const taskDescription = {
-  color: "#9ca3af",
-  lineHeight: "1.6",
-  fontSize: "14px",
-};
-
-const meta = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap" as const,
-  marginTop: "18px",
-  marginBottom: "18px",
-};
-
-const chip = {
-  padding: "6px 10px",
-  borderRadius: "999px",
-  background: "#141414",
-  border: "1px solid rgba(255,255,255,0.06)",
-  color: "#a1a1aa",
-  fontSize: "12px",
-  fontWeight: 600,
-};
-
-const button = {
-  width: "100%",
-  padding: "12px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "#141414",
-  color: "white",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const appliedButton = {
-  ...button,
-  background: "#0f0f0f",
-  color: "#666",
-  cursor: "not-allowed",
-};
-
-const emptyState = {
-  padding: "28px",
-  borderRadius: "18px",
-  background: "#0d0d0d",
-  border: "1px solid rgba(255,255,255,0.08)",
-  color: "#8f8f8f",
-};

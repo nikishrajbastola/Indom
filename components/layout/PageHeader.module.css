@@ -1,0 +1,55 @@
+.header {
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 30px;
+}
+
+.header > div:first-child {
+  min-width: 0;
+}
+
+.eyebrow {
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.header h1 {
+  margin-top: 7px;
+  color: var(--color-text);
+  font-size: clamp(28px, 3.2vw, 36px);
+  font-weight: 730;
+  line-height: 1.16;
+  letter-spacing: -0.042em;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 680px;
+  margin-top: 8px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.action {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .action,
+  .action > * {
+    width: 100%;
+  }
+}

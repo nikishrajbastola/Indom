@@ -1,16 +1,19 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import styles from "@/components/product/Product.module.css";
+import { Button } from "@/components/ui/Button";
+import { LoadingState } from "@/components/ui/EmptyState";
+import formStyles from "@/components/ui/FormControls.module.css";
 import { supabase } from "@/lib/supabase";
 
 export default function StudentProfilePage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-
   const [resumeUrl, setResumeUrl] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
-
   const [fullName, setFullName] = useState("");
   const [headline, setHeadline] = useState("");
   const [bio, setBio] = useState("");
@@ -18,40 +21,34 @@ export default function StudentProfilePage() {
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [portfolioUrl, setPortfolioUrl] = useState("");
   const [skills, setSkills] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
-  const fetchProfile = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select(`
-        full_name,
-        headline,
-        bio,
-        avatar_url,
-        github_url,
-        linkedin_url,
-        portfolio_url,
-        skills,
-        resume_url
-      `)
-      .eq("id", user.id)
-      .single();
-
-    if (error) {
-      alert(error.message);
+    if (!user) {
+      setError("Please log in to manage your profile.");
+      setLoading(false);
       return;
     }
 
-    if (data) {
+    const { data, error: queryError } = await supabase
+      .from("profiles")
+      .select("full_name, headline, bio, avatar_url, github_url, linkedin_url, portfolio_url, skills, resume_url")
+      .eq("id", user.id)
+      .single();
+
+    if (queryError) {
+      setError("We couldn’t load your profile. Please try again.");
+    } else if (data) {
       setFullName(data.full_name || "");
       setHeadline(data.headline || "");
       setBio(data.bio || "");
@@ -62,444 +59,244 @@ export default function StudentProfilePage() {
       setSkills(data.skills || "");
       setResumeUrl(data.resume_url || "");
     }
-  };
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadProfile(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadProfile]);
 
   const handleAvatarUpload = async () => {
     if (!avatarFile) {
-      alert("Please choose a profile photo first.");
+      setError("Choose a profile photo before uploading.");
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    setError("");
+    setSuccess("");
+    setUploadingAvatar(true);
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("You must be logged in.");
+      setError("Please log in before uploading a profile photo.");
+      setUploadingAvatar(false);
       return;
     }
 
     const filePath = `${user.id}/${Date.now()}-${avatarFile.name}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, avatarFile);
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, avatarFile);
 
     if (uploadError) {
-      alert(uploadError.message);
+      setError("We couldn’t upload your profile photo.");
+      setUploadingAvatar(false);
       return;
     }
 
     const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
     const publicUrl = data.publicUrl;
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ avatar_url: publicUrl })
-      .eq("id", user.id);
+    const { error: updateError } = await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
 
     if (updateError) {
-      alert(updateError.message);
+      setError("Your photo uploaded, but we couldn’t add it to your profile.");
+      setUploadingAvatar(false);
       return;
     }
 
     setAvatarUrl(publicUrl);
-    alert("Profile photo uploaded!");
+    setSuccess("Profile photo updated.");
+    setUploadingAvatar(false);
   };
 
   const handleResumeUpload = async () => {
     if (!resumeFile) {
-      alert("Please choose a resume first.");
+      setError("Choose a resume before uploading.");
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    setError("");
+    setSuccess("");
+    setUploadingResume(true);
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("You must be logged in.");
+      setError("Please log in before uploading a resume.");
+      setUploadingResume(false);
       return;
     }
 
     const filePath = `${user.id}/${Date.now()}-${resumeFile.name}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("resumes")
-      .upload(filePath, resumeFile);
+    const { error: uploadError } = await supabase.storage.from("resumes").upload(filePath, resumeFile);
 
     if (uploadError) {
-      alert(uploadError.message);
+      setError("We couldn’t upload your resume.");
+      setUploadingResume(false);
       return;
     }
 
     const { data } = supabase.storage.from("resumes").getPublicUrl(filePath);
     const publicUrl = data.publicUrl;
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ resume_url: publicUrl })
-      .eq("id", user.id);
+    const { error: updateError } = await supabase.from("profiles").update({ resume_url: publicUrl }).eq("id", user.id);
 
     if (updateError) {
-      alert(updateError.message);
+      setError("Your resume uploaded, but we couldn’t add it to your profile.");
+      setUploadingResume(false);
       return;
     }
 
     setResumeUrl(publicUrl);
-    alert("Resume uploaded successfully!");
+    setSuccess("Resume uploaded successfully.");
+    setUploadingResume(false);
   };
 
-  const saveProfile = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    setSaving(true);
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
-    if (!user) return;
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        full_name: fullName,
-        headline,
-        bio,
-        github_url: githubUrl,
-        linkedin_url: linkedinUrl,
-        portfolio_url: portfolioUrl,
-        skills,
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      alert(error.message);
+    if (!user) {
+      setError("Please log in before saving your profile.");
+      setSaving(false);
       return;
     }
 
-    alert("Profile updated!");
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ full_name: fullName, headline, bio, github_url: githubUrl, linkedin_url: linkedinUrl, portfolio_url: portfolioUrl, skills })
+      .eq("id", user.id);
+
+    if (updateError) {
+      setError("We couldn’t save your profile. Please try again.");
+    } else {
+      setSuccess("Profile updated successfully.");
+    }
+
+    setSaving(false);
   };
 
   return (
-    <main style={page}>
-      <aside style={sidebar}>
-        <Link href="/" style={brand}>TaskForge</Link>
+    <div className={`${styles.page} ${styles.pageMedium}`}>
+      <PageHeader
+        eyebrow="Student profile"
+        title="Your professional profile"
+        description="Keep the information organizations use to understand your skills, interests, and experience current."
+      />
 
-        <nav style={nav}>
-          <Link href="/student" style={navItem}>Overview</Link>
-          <Link href="/student/projects" style={navItem}>Browse Projects</Link>
-          <Link href="/student/applications" style={navItem}>My Applications</Link>
-          <Link href="/student/profile" style={activeNav}>Profile</Link>
-        </nav>
-      </aside>
+      {error && <p className={`${styles.notice} ${styles.noticeError}`} role="alert">{error}</p>}
+      {success && <p className={`${styles.notice} ${styles.noticeSuccess}`} role="status">{success}</p>}
 
-      <section style={content}>
-        <p style={eyebrow}>STUDENT PROFILE</p>
-        <h1 style={title}>Your professional profile.</h1>
-        <p style={subtitle}>Build a profile organizations can trust.</p>
+      {loading ? (
+        <LoadingState label="Loading your profile" />
+      ) : (
+        <div className={styles.splitGrid}>
+          <div className={styles.applicationList}>
+            <section className={styles.previewPanel} aria-labelledby="profile-preview-title">
+              <div className={styles.profileHero}>
+                <div className={styles.avatar}>
+                  {avatarUrl ? <img src={avatarUrl} alt={`${fullName || "Student"} profile`} /> : fullName.charAt(0).toUpperCase() || "S"}
+                </div>
+                <div>
+                  <h2 id="profile-preview-title">{fullName || "Your name"}</h2>
+                  <p>{headline || "Add a professional headline"}</p>
+                </div>
+              </div>
+              <p className={styles.profileBody}>{bio || "Add a short bio about your skills, interests, and the work you want to explore."}</p>
+              <div className={styles.chips}>
+                {(skills || "Add your skills").split(/[,;]/).map((skill) => skill.trim()).filter(Boolean).slice(0, 6).map((skill) => <span key={skill} className={styles.chip}>{skill}</span>)}
+              </div>
+              <div className={styles.profileLinks}>
+                {githubUrl && <a href={githubUrl} target="_blank" rel="noreferrer">GitHub</a>}
+                {linkedinUrl && <a href={linkedinUrl} target="_blank" rel="noreferrer">LinkedIn</a>}
+                {portfolioUrl && <a href={portfolioUrl} target="_blank" rel="noreferrer">Portfolio</a>}
+              </div>
+            </section>
 
-        <div style={heroCard}>
-          <div style={avatarSection}>
-            <div style={avatar}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Profile" style={avatarImage} />
-              ) : (
-                fullName.charAt(0) || "U"
-              )}
+            <section className={styles.panel} aria-labelledby="profile-assets-title">
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Files</p>
+                  <h2 id="profile-assets-title">Photo and resume</h2>
+                </div>
+              </div>
+
+              <div className={formStyles.form}>
+                <div className={formStyles.field}>
+                  <label className={formStyles.label} htmlFor="avatar-upload">Profile photo</label>
+                  <input id="avatar-upload" className={formStyles.fileInput} type="file" accept="image/*" onChange={(event) => setAvatarFile(event.target.files?.[0] || null)} />
+                  <Button variant="secondary" size="small" onClick={handleAvatarUpload} loading={uploadingAvatar}>
+                    {uploadingAvatar ? "Uploading…" : "Upload photo"}
+                  </Button>
+                </div>
+
+                <div className={formStyles.field}>
+                  <label className={formStyles.label} htmlFor="resume-upload">Resume</label>
+                  <input id="resume-upload" className={formStyles.fileInput} type="file" accept=".pdf,.doc,.docx" onChange={(event) => setResumeFile(event.target.files?.[0] || null)} />
+                  <p className={formStyles.help}>PDF, DOC, or DOCX.</p>
+                  <Button variant="secondary" size="small" onClick={handleResumeUpload} loading={uploadingResume}>
+                    {uploadingResume ? "Uploading…" : "Upload resume"}
+                  </Button>
+                  {resumeUrl && <a className={styles.textLink} href={resumeUrl} target="_blank" rel="noreferrer">View current resume →</a>}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <form className={styles.formPanel} onSubmit={saveProfile}>
+            <section className={styles.subsection} aria-labelledby="professional-info-title">
+              <h2 id="professional-info-title">Professional information</h2>
+              <p>Introduce yourself clearly and concisely.</p>
+              <div className={formStyles.form}>
+                <div className={formStyles.field}>
+                  <label className={formStyles.label} htmlFor="full-name">Full name</label>
+                  <input id="full-name" className={formStyles.input} value={fullName} onChange={(event) => setFullName(event.target.value)} />
+                </div>
+                <div className={formStyles.field}>
+                  <label className={formStyles.label} htmlFor="headline">Professional headline</label>
+                  <input id="headline" className={formStyles.input} placeholder="Example: Computer science student focused on data" value={headline} onChange={(event) => setHeadline(event.target.value)} />
+                </div>
+                <div className={formStyles.field}>
+                  <label className={formStyles.label} htmlFor="bio">About</label>
+                  <textarea id="bio" className={formStyles.textarea} placeholder="Share your interests, experience, and the work you want to explore." value={bio} onChange={(event) => setBio(event.target.value)} />
+                </div>
+                <div className={formStyles.field}>
+                  <label className={formStyles.label} htmlFor="skills">Skills</label>
+                  <textarea id="skills" className={formStyles.textarea} placeholder="React, Python, research, project management" value={skills} onChange={(event) => setSkills(event.target.value)} />
+                  <p className={formStyles.help}>Separate skills with commas.</p>
+                </div>
+              </div>
+            </section>
+
+            <section className={styles.subsection} aria-labelledby="profile-links-title">
+              <h2 id="profile-links-title">Professional links</h2>
+              <p>Add the places where organizations can review your work.</p>
+              <div className={formStyles.form}>
+                <div className={formStyles.field}>
+                  <label className={formStyles.label} htmlFor="github-url">GitHub URL</label>
+                  <input id="github-url" className={formStyles.input} type="url" placeholder="https://github.com/you" value={githubUrl} onChange={(event) => setGithubUrl(event.target.value)} />
+                </div>
+                <div className={formStyles.field}>
+                  <label className={formStyles.label} htmlFor="linkedin-url">LinkedIn URL</label>
+                  <input id="linkedin-url" className={formStyles.input} type="url" placeholder="https://linkedin.com/in/you" value={linkedinUrl} onChange={(event) => setLinkedinUrl(event.target.value)} />
+                </div>
+                <div className={formStyles.field}>
+                  <label className={formStyles.label} htmlFor="portfolio-url">Portfolio URL</label>
+                  <input id="portfolio-url" className={formStyles.input} type="url" placeholder="https://yourportfolio.com" value={portfolioUrl} onChange={(event) => setPortfolioUrl(event.target.value)} />
+                </div>
+              </div>
+            </section>
+
+            <div className={formStyles.actions}>
+              <Button type="submit" loading={saving}>{saving ? "Saving…" : "Save profile"}</Button>
             </div>
-
-            <div>
-              <h2 style={profileName}>{fullName || "Your Name"}</h2>
-              <p style={profileHeadline}>
-                {headline || "Add a professional headline"}
-              </p>
-            </div>
-          </div>
-
-          <p style={profileBio}>
-            {bio || "Write a short bio about your skills, interests, and goals."}
-          </p>
-
-          <input
-            type="file"
-            accept="image/*"
-            style={fileInput}
-            onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
-          />
-
-          <button style={button} onClick={handleAvatarUpload}>
-            Upload Profile Photo
-          </button>
+          </form>
         </div>
-
-        <div style={grid}>
-          <div style={card}>
-            <h2 style={cardTitle}>Resume</h2>
-
-            <p style={description}>
-              Upload your resume so organizations can review your experience.
-            </p>
-
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              style={fileInput}
-              onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-            />
-
-            <button style={button} onClick={handleResumeUpload}>
-              Upload Resume
-            </button>
-
-            {resumeUrl && (
-              <a href={resumeUrl} target="_blank" style={resumeLink}>
-                View Uploaded Resume
-              </a>
-            )}
-          </div>
-
-          <div style={card}>
-            <h2 style={cardTitle}>Profile Information</h2>
-
-            <input
-              style={input}
-              placeholder="Full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-
-            <input
-              style={input}
-              placeholder="Professional headline"
-              value={headline}
-              onChange={(e) => setHeadline(e.target.value)}
-            />
-
-            <textarea
-              style={textarea}
-              placeholder="Short professional bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-            />
-
-            <input
-              style={input}
-              placeholder="GitHub URL"
-              value={githubUrl}
-              onChange={(e) => setGithubUrl(e.target.value)}
-            />
-
-            <input
-              style={input}
-              placeholder="LinkedIn URL"
-              value={linkedinUrl}
-              onChange={(e) => setLinkedinUrl(e.target.value)}
-            />
-
-            <input
-              style={input}
-              placeholder="Portfolio URL"
-              value={portfolioUrl}
-              onChange={(e) => setPortfolioUrl(e.target.value)}
-            />
-
-            <textarea
-              style={textarea}
-              placeholder="Skills (React, Python, AWS...)"
-              value={skills}
-              onChange={(e) => setSkills(e.target.value)}
-            />
-
-            <button style={button} onClick={saveProfile}>
-              Save Profile
-            </button>
-          </div>
-        </div>
-      </section>
-    </main>
+      )}
+    </div>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background: "#050505",
-  color: "white",
-  display: "grid",
-  gridTemplateColumns: "260px 1fr",
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const sidebar = {
-  borderRight: "1px solid rgba(255,255,255,0.08)",
-  padding: "28px",
-  background: "#080808",
-};
-
-const brand = {
-  color: "white",
-  textDecoration: "none",
-  fontSize: "22px",
-  fontWeight: 700,
-  marginBottom: "40px",
-  display: "block",
-};
-
-const nav = { display: "grid", gap: "10px" };
-
-const navItem = {
-  color: "#aaa",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-};
-
-const activeNav = {
-  color: "white",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
-};
-
-const content = { padding: "48px" };
-
-const eyebrow = {
-  color: "#60a5fa",
-  fontSize: "13px",
-  fontWeight: 800,
-  letterSpacing: "0.16em",
-};
-
-const title = {
-  fontSize: "52px",
-  margin: "8px 0",
-  letterSpacing: "-0.05em",
-};
-
-const subtitle = {
-  color: "#aaa",
-  fontSize: "18px",
-  marginBottom: "32px",
-};
-
-const heroCard = {
-  padding: "32px",
-  borderRadius: "28px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  marginBottom: "24px",
-};
-
-const avatarSection = {
-  display: "flex",
-  alignItems: "center",
-  gap: "20px",
-  marginBottom: "20px",
-};
-
-const avatar = {
-  width: "90px",
-  height: "90px",
-  borderRadius: "50%",
-  background: "#27272a",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "32px",
-  fontWeight: 700,
-  overflow: "hidden",
-};
-
-const avatarImage = {
-  width: "100%",
-  height: "100%",
-  objectFit: "cover" as const,
-};
-
-const profileName = {
-  fontSize: "32px",
-  marginBottom: "6px",
-};
-
-const profileHeadline = {
-  color: "#aaa",
-  fontSize: "16px",
-};
-
-const profileBio = {
-  color: "#b5b5b5",
-  lineHeight: "1.6",
-  marginBottom: "20px",
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-  gap: "20px",
-};
-
-const card = {
-  padding: "28px",
-  borderRadius: "24px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-};
-
-const cardTitle = {
-  fontSize: "24px",
-  marginBottom: "12px",
-};
-
-const description = {
-  color: "#b5b5b5",
-  lineHeight: "1.6",
-  marginBottom: "20px",
-};
-
-const fileInput = {
-  width: "100%",
-  padding: "14px",
-  borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "#111",
-  color: "white",
-  marginBottom: "16px",
-};
-
-const input = {
-  width: "100%",
-  padding: "14px",
-  borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "#111",
-  color: "white",
-  marginBottom: "14px",
-};
-
-const textarea = {
-  width: "100%",
-  minHeight: "110px",
-  padding: "14px",
-  borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "#111",
-  color: "white",
-  marginBottom: "18px",
-};
-
-const button = {
-  width: "100%",
-  padding: "14px",
-  borderRadius: "999px",
-  border: "none",
-  background: "white",
-  color: "black",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const resumeLink = {
-  display: "block",
-  marginTop: "16px",
-  color: "#60a5fa",
-  textDecoration: "none",
-  fontWeight: 700,
-};

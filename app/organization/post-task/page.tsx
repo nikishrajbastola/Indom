@@ -1,7 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import styles from "@/components/product/Product.module.css";
+import { Button } from "@/components/ui/Button";
+import formStyles from "@/components/ui/FormControls.module.css";
 import { supabase } from "@/lib/supabase";
 
 export default function PostTaskPage() {
@@ -9,213 +13,123 @@ export default function PostTaskPage() {
   const [description, setDescription] = useState("");
   const [skills, setSkills] = useState("");
   const [duration, setDuration] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handlePostTask = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const handlePostTask = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    setSubmitting(true);
+
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("Not logged in");
+      setError("Please log in before posting a project.");
+      setSubmitting(false);
       return;
     }
 
-    const { error } = await supabase.from("tasks").insert([
-      {
-        title,
-        description,
-        skills,
-        duration,
-        organization_id: user.id,
-      },
+    const { error: insertError } = await supabase.from("tasks").insert([
+      { title, description, skills, duration, organization_id: user.id },
     ]);
 
-    if (error) {
-      alert(error.message);
+    if (insertError) {
+      setError("We couldn’t publish this project. Please try again.");
+      setSubmitting(false);
       return;
     }
 
-    alert("Task posted successfully!");
     setTitle("");
     setDescription("");
     setSkills("");
     setDuration("");
+    setSuccess("Project published successfully.");
+    setSubmitting(false);
   };
 
   return (
-    <main style={page}>
-      <aside style={sidebar}>
-        <Link href="/" style={brand}>TaskForge</Link>
+    <AppShell workspace="organization">
+      <div className={`${styles.page} ${styles.pageNarrow}`}>
+        <PageHeader
+          eyebrow="New opportunity"
+          title="Post a project"
+          description="Create a clear, scoped opportunity so students understand the work and what they can contribute."
+        />
 
-        <nav style={navLinks}>
-          <Link href="/organization" style={navItem}>Dashboard</Link>
-          <Link href="/organization/post-task" style={activeItem}>Post Task</Link>
-        </nav>
-      </aside>
+        {error && <p className={`${styles.notice} ${styles.noticeError}`} role="alert">{error}</p>}
+        {success && <p className={`${styles.notice} ${styles.noticeSuccess}`} role="status">{success}</p>}
 
-      <section style={content}>
-        <div style={header}>
-          <p style={eyebrow}>Organization</p>
-          <h1 style={titleStyle}>Post a new task</h1>
-          <p style={subtext}>
-            Create a clear project students can complete in a focused sprint.
-          </p>
-        </div>
+        <form className={styles.formPanel} onSubmit={handlePostTask}>
+          <section className={styles.subsection} aria-labelledby="project-basics-title">
+            <h2 id="project-basics-title">Project basics</h2>
+            <p>Use a direct title and explain the outcome students will help create.</p>
+            <div className={formStyles.form}>
+              <div className={formStyles.field}>
+                <label className={formStyles.label} htmlFor="project-title">Project title</label>
+                <input
+                  id="project-title"
+                  className={formStyles.input}
+                  placeholder="Example: Clean research survey data"
+                  required
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                />
+              </div>
 
-        <div style={card}>
-          <label style={label}>Task title</label>
-          <input
-            style={input}
-            placeholder="Example: Clean research survey data"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+              <div className={formStyles.field}>
+                <label className={formStyles.label} htmlFor="project-description">Description</label>
+                <textarea
+                  id="project-description"
+                  className={formStyles.textarea}
+                  placeholder="Describe the work, expected outcome, and any important requirements."
+                  required
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+                <p className={formStyles.help}>Be specific about what the student will work on and what a useful result looks like.</p>
+              </div>
+            </div>
+          </section>
 
-          <label style={label}>Description</label>
-          <textarea
-            style={textarea}
-            placeholder="Describe the work, expected outcome, timeline, and requirements."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <section className={styles.subsection} aria-labelledby="project-details-title">
+            <h2 id="project-details-title">Skills and timing</h2>
+            <p>These fields use the existing project schema.</p>
+            <div className={formStyles.formGrid}>
+              <div className={formStyles.field}>
+                <label className={formStyles.label} htmlFor="project-skills">Skills needed</label>
+                <input
+                  id="project-skills"
+                  className={formStyles.input}
+                  placeholder="Excel, Python, research"
+                  value={skills}
+                  onChange={(event) => setSkills(event.target.value)}
+                />
+                <p className={formStyles.help}>Separate skills with commas.</p>
+              </div>
 
-          <label style={label}>Skills needed</label>
-          <input
-            style={input}
-            placeholder="Example: Excel, Python, Research"
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-          />
+              <div className={formStyles.field}>
+                <label className={formStyles.label} htmlFor="project-duration">Estimated duration</label>
+                <input
+                  id="project-duration"
+                  className={formStyles.input}
+                  placeholder="Example: 2 weeks"
+                  value={duration}
+                  onChange={(event) => setDuration(event.target.value)}
+                />
+              </div>
+            </div>
+          </section>
 
-          <label style={label}>Duration</label>
-          <input
-            style={input}
-            placeholder="Example: 2 weeks"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-          />
-
-          <button style={button} onClick={handlePostTask}>
-            Publish task
-          </button>
-        </div>
-      </section>
-    </main>
+          <div className={formStyles.actions}>
+            <Button type="submit" loading={submitting}>
+              {submitting ? "Publishing…" : "Publish project"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </AppShell>
   );
 }
-
-const page = {
-  minHeight: "100vh",
-  background: "#050505",
-  color: "white",
-  display: "grid",
-  gridTemplateColumns: "260px 1fr",
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const sidebar = {
-  borderRight: "1px solid rgba(255,255,255,0.08)",
-  padding: "28px",
-  background: "#080808",
-};
-
-const brand = {
-  color: "white",
-  textDecoration: "none",
-  fontSize: "22px",
-  fontWeight: 700,
-};
-
-const navLinks = {
-  display: "grid",
-  gap: "10px",
-  marginTop: "40px",
-};
-
-const navItem = {
-  color: "#aaa",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-};
-
-const activeItem = {
-  color: "white",
-  textDecoration: "none",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
-};
-
-const content = {
-  padding: "48px",
-};
-
-const header = {
-  marginBottom: "32px",
-};
-
-const eyebrow = {
-  color: "#a78bfa",
-  fontSize: "14px",
-  fontWeight: 700,
-  letterSpacing: "0.12em",
-};
-
-const titleStyle = {
-  fontSize: "48px",
-  margin: "8px 0",
-};
-
-const subtext = {
-  color: "#aaa",
-  fontSize: "18px",
-};
-
-const card = {
-  maxWidth: "720px",
-  padding: "32px",
-  borderRadius: "24px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-};
-
-const label = {
-  display: "block",
-  marginBottom: "8px",
-  color: "#ddd",
-  fontWeight: 600,
-};
-
-const input = {
-  width: "100%",
-  padding: "16px",
-  marginBottom: "20px",
-  borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "#111",
-  color: "white",
-  fontSize: "16px",
-};
-
-const textarea = {
-  width: "100%",
-  height: "180px",
-  padding: "16px",
-  marginBottom: "24px",
-  borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "#111",
-  color: "white",
-  fontSize: "16px",
-};
-
-const button = {
-  padding: "14px 22px",
-  borderRadius: "999px",
-  border: "none",
-  background: "white",
-  color: "black",
-  fontWeight: 700,
-  cursor: "pointer",
-};
