@@ -237,3 +237,6 @@ export default function AppShell({
     </div>
   );
 }
+
+// Keep both import styles compatible while default imports remain canonical.
+export { AppShell };

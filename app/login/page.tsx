@@ -63,8 +63,8 @@ export default function LoginPage() {
         {errorMessage && <p className={`${workspace.notice} ${workspace.noticeDanger}`} role="alert">{errorMessage}</p>}
         <form className={auth.form} onSubmit={handleLogin}>
           <FormField label="Email address" htmlFor="email"><TextInput id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></FormField>
-          <FormField label="Password" htmlFor="password"><div className={auth.passwordField}><TextInput id="password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /><button type="button" className={auth.passwordToggle} onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? "Hide" : "Show"}</button></div></FormField>
-          <Button type="submit" disabled={loggingIn}>{loggingIn ? "Logging in…" : "Log in"}</Button>
+          <FormField label="Password" htmlFor="password"><div className={auth.passwordField}><TextInput id="password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /><button type="button" className={auth.passwordToggle} onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>{showPassword ? "Hide" : "Show"}</button></div></FormField>
+          <Button type="submit" loading={loggingIn}>{loggingIn ? "Logging in…" : "Log in"}</Button>
         </form>
         <p className={auth.footer}>New to Indom? <Link className={auth.link} href="/signup">Create account</Link></p>
       </section>

@@ -3,7 +3,9 @@
   display: grid;
   place-items: center;
   padding: 32px 16px;
-  background: var(--color-canvas);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(49, 87, 213, 0.08), transparent 34%),
+    var(--color-canvas);
   color: var(--color-text);
 }
 
@@ -15,6 +17,11 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
+  box-shadow: 0 12px 36px rgba(16, 24, 40, 0.06);
+}
+
+.shell {
+  width: min(100%, 450px);
 }
 
 .brand {
@@ -37,8 +44,37 @@
   border-radius: var(--radius-sm);
   background: var(--color-primary-soft);
   color: var(--color-primary);
+  font-family: var(--font-geist-mono), monospace;
   font-size: 14px;
   font-weight: 720;
+}
+
+.shell > .brand {
+  margin: 0 auto 24px;
+}
+
+.eyebrow {
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.card > .eyebrow + h1 {
+  margin-top: 8px;
+  color: var(--color-text);
+  font-size: clamp(27px, 5vw, 32px);
+  font-weight: 720;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.description {
+  margin-top: 9px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .heading {
@@ -67,6 +103,10 @@
 }
 
 .form > button {
+  width: 100%;
+}
+
+.fullButton {
   width: 100%;
 }
 
@@ -150,6 +190,45 @@
   font-weight: 680;
 }
 
+.accountLink {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+.accountLink a {
+  color: var(--color-primary);
+  font-weight: 660;
+}
+
+.roleSwitch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+.roleSwitch a {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.roleSwitch .activeRole {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-subtle);
+}
+
 .choicePage {
   min-height: 100dvh;
   display: grid;
@@ -204,6 +283,55 @@
 .choiceActions {
   display: grid;
   gap: 12px;
+}
+
+.choiceActions > * {
+  width: 100%;
+}
+
+.benefits {
+  display: grid;
+  gap: 10px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.benefits li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.benefits li::before {
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  font-size: 10px;
+  font-weight: 800;
+  content: "✓";
+}
+
+.backLink {
+  display: block;
+  margin-top: 18px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.brand:focus-visible,
+.accountLink a:focus-visible,
+.roleSwitch a:focus-visible,
+.backLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 @media (max-width: 760px) {

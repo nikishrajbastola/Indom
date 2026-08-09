@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import ApplicationStatusChart from "@/components/ApplicationStatusChart";
-import { PageHeader } from "@/components/layout/PageHeader";
+import PageHeader from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";

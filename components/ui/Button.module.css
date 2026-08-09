@@ -3,7 +3,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: 8px;
   padding: 10px 15px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
@@ -12,7 +12,12 @@
   line-height: 1;
   text-align: center;
   white-space: nowrap;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
 }
 
 .small {
@@ -24,6 +29,7 @@
 .primary {
   background: var(--color-primary);
   color: #ffffff;
+  box-shadow: var(--shadow-subtle);
 }
 
 .primary:hover {
@@ -61,6 +67,11 @@
   background: #fee4e2;
 }
 
+.button:active {
+  box-shadow: none;
+  transform: translateY(1px);
+}
+
 .button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -72,6 +83,22 @@
   opacity: 0.55;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

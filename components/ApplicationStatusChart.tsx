@@ -1,25 +1,17 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-
-type ApplicationStatusChartProps = {
-  pending: number;
-  accepted: number;
-  rejected: number;
-};
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import styles from "./ApplicationStatusChart.module.css";
 
 export default function ApplicationStatusChart({
   pending,
   accepted,
   rejected,
-}: ApplicationStatusChartProps) {
+}: {
+  pending: number;
+  accepted: number;
+  rejected: number;
+}) {
   const data = [
     { status: "Pending", count: pending },
     { status: "Accepted", count: accepted },
@@ -27,40 +19,15 @@ export default function ApplicationStatusChart({
   ];
 
   return (
-    <div style={chartWrapper}>
+    <div className={styles.wrapper} role="img" aria-label={`Application status: ${pending} pending, ${accepted} accepted, ${rejected} rejected`}>
       <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={data}>
-          <XAxis
-            dataKey="status"
-            stroke="#667085"
-          />
-
-          <YAxis
-            stroke="#667085"
-            allowDecimals={false}
-          />
-
-          <Tooltip
-            contentStyle={{
-              background: "#ffffff",
-              border: "1px solid #e4e7ec",
-              borderRadius: "10px",
-              color: "#101828",
-            }}
-          />
-
-          <Bar
-            dataKey="count"
-            fill="#3157d5"
-            radius={[8, 8, 0, 0]}
-          />
+        <BarChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+          <XAxis dataKey="status" stroke="#667085" fontSize={12} tickLine={false} axisLine={{ stroke: "#e4e7ec" }} />
+          <YAxis stroke="#667085" fontSize={12} allowDecimals={false} tickLine={false} axisLine={false} />
+          <Tooltip cursor={{ fill: "#f2f4f7" }} contentStyle={{ background: "#ffffff", border: "1px solid #e4e7ec", borderRadius: "10px", boxShadow: "0 8px 20px rgba(16,24,40,.08)", color: "#101828", fontSize: "12px" }} />
+          <Bar dataKey="count" fill="#3157d5" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 }
-
-const chartWrapper = {
-  width: "100%",
-  height: "280px",
-};

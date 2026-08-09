@@ -103,7 +103,11 @@
   color: var(--shell-muted);
   font-size: 14px;
   font-weight: 560;
-  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+  transition:
+    color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
 }
 
 .navLink:hover {
@@ -275,6 +279,7 @@
     border-radius: var(--radius-lg);
     background: var(--shell-surface-raised);
     box-shadow: var(--shadow-menu);
+    animation: menu-enter var(--motion-normal) var(--ease-standard) both;
   }
 
   .mobileMenu .navigation {
@@ -289,6 +294,18 @@
 
   .main {
     min-height: calc(100dvh - 64px);
+  }
+}
+
+@keyframes menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
